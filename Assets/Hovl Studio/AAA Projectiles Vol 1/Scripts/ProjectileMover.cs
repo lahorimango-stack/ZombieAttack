@@ -1,17 +1,17 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-
 public class ProjectileMover : MonoBehaviour
 {
     public float speed = 15f;
     public float hitOffset = 0f;
     public bool UseFirePointRotation;
+    public bool isShoot = false;
     public Vector3 rotationOffset = new Vector3(0, 0, 0);
     public GameObject hit;
     public GameObject flash;
     private Rigidbody rb;
     public GameObject[] Detached;
+
 
     void Start()
     {
@@ -31,17 +31,18 @@ public class ProjectileMover : MonoBehaviour
                 Destroy(flashInstance, flashPsParts.main.duration);
             }
         }
-        Destroy(gameObject,5);
-	}
+        Destroy(gameObject, 5);
+    }
 
-    void FixedUpdate ()
+    void FixedUpdate()
     {
-		if (speed != 0)
+
+        if (speed != 0 && this.isShoot)
         {
             rb.linearVelocity = transform.forward * speed;
             //transform.position += transform.forward * (speed * Time.deltaTime);         
         }
-	}
+    }
 
     //https ://docs.unity3d.com/ScriptReference/Rigidbody.OnCollisionEnter.html
     void OnCollisionEnter(Collision collision)
