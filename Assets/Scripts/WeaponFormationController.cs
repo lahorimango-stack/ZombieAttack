@@ -1,49 +1,50 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 
 public class WeaponFormationController : MonoBehaviour
 {
-    [Header("--- 1. Weapon Spawning Settings ---")]
-    [Tooltip("Wo Knife/Weapon Prefab assign karein jo drag karne par spawn hoga.")]
-    [SerializeField] private GameObject knifePrefab;
+    [Header("--- 1. Resources & Weapon Settings ---")]
+    [Tooltip("Assets/Resources folder ke andar ka sub-folder (e.g. 'Projectiles')")]
+    [SerializeField] private string resourcesSubFolder = "Projectiles";
 
-    [Tooltip("Camera se kitne units aage hawa mein knife spawn hogi. Isko barhane se knife camera se door banti hai.")]
+    [Tooltip("Fallback prefabs agar Resources use na karna ho")]
+    [SerializeField] private List<GameObject> fallbackWeaponPrefabs = new List<GameObject>();
+
+    [Tooltip("Currently active weapon index")]
+    [SerializeField] private int currentWeaponIndex = 0;
+
+
+    [Header("--- 2. Dev / Debug Name Override ---")]
+    [Tooltip("Dev Check: Agar ye ON hoga to niche diye gaye 'Dev Weapon Name' se projectile spawn hoga")]
+    [SerializeField] private bool useDevWeaponByName = false;
+
+    [Tooltip("Dev Mode mein jis prefab ka exact naam yahan likhenge wohi spawn hoga (e.g. 'Knife_Blue', 'Fireball')")]
+    [SerializeField] private string devWeaponName = "";
+
+
+    [Header("--- 3. Weapon Spawning Limits ---")]
     [SerializeField] private float spawnDepthFromCamera = 2.5f;
-
-    [Tooltip("Do knives ke darmiyan kitna drag distance hona zaroori hai. Choti value = zyada dense/qareeb knives, Badi value = door door knives.")]
     [SerializeField] private float minDistanceBetweenKnives = 0.45f;
-
-    [Tooltip("Screen par ek waqt mein zyada se zyada kitni knives ban sakti hain. Limit poori hone par purani recycle ho jayegi.")]
     [SerializeField] private int maxKnivesLimit = 25;
 
 
-    [Header("--- 2. Camera Pan Settings (Left/Right & Up/Down) ---")]
-    [Tooltip("Scene ka Main Camera assign karein (agar empty chhora to script khud Camera.main detect kar legi).")]
+    [Header("--- 4. Camera Pan & Zoom (DOTween) ---")]
     [SerializeField] private Camera mainCamera;
-
-    [Tooltip("Camera kitni smoothness ke sath finger drag ko follow karega. Kam value (e.g. 4) = Heavy/Smooth, Zyada value (e.g. 12) = Tez/Snappy.")]
     [SerializeField] private float panSmoothSpeed = 10f;
-
-    [Tooltip("Screen par kitne pixels drag karne par camera full pan limit tak pohnchega (Sensitivity control karta hai).")]
     [SerializeField] private float dragRange = 250f;
-
-    [Tooltip("Finger Left/Right move karne par camera maximum kitne units Left ya Right pan ho sakta hai.")]
     [SerializeField] private float maxPanX = 1.5f;
-
-    [Tooltip("Finger Up/Down move karne par camera maximum kitne units Up ya Down pan ho sakta hai.")]
     [SerializeField] private float maxPanY = 0.8f;
-
-
-    [Header("--- 3. Camera Zoom (Push Back Feel) ---")]
-    [Tooltip("Screen par click/touch karte hi camera kitne units peeche hatega (Zoom out kick feel dene ke liye).")]
     [SerializeField] private float cameraPushBackDistance = 0.8f;
-
-    [Tooltip("Camera ke peeche hatne aur finger chhorne par wapis apni asli jagah aane ka time (seconds mein).")]
     [SerializeField] private float zoomDuration = 0.25f;
 
 
-    // --- Private Variables (Inspector me show nahi honge) ---
+    // Internal Runtime Variables
+    private List<GameObject> loadedWeapons = new List<GameObject>();
+    private Dictionary<int, Queue<ProjectileMover>> poolDictionary = new Dictionary<int, Queue<ProjectileMover>>();
+    private List<ProjectileMover> activeKnivesOnScreen = new List<ProjectileMover>();
+
     private Vector3 defaultCameraPos;
     private Vector2 touchStartScreenPos;
     private Vector3 lastSpawnWorldPos;
@@ -51,9 +52,6 @@ public class WeaponFormationController : MonoBehaviour
     private float targetPanY = 0f;
     private float currentZoomOffset = 0f;
     private bool isDragging = false;
-
-    private List<WeaponProjectile> spawnedKnives = new List<WeaponProjectile>();
-    private Queue<GameObject> knifePool = new Queue<GameObject>();
     private Tween zoomTween;
 
     void Awake()
@@ -61,8 +59,35 @@ public class WeaponFormationController : MonoBehaviour
         if (mainCamera == null)
             mainCamera = Camera.main;
 
-        // Game start hone par camera ki original position save karein
         defaultCameraPos = mainCamera.transform.position;
+
+        LoadWeaponsFromResources();
+    }
+
+    private void LoadWeaponsFromResources()
+    {
+        loadedWeapons.Clear();
+
+        GameObject[] resWeapons = Resources.LoadAll<GameObject>(resourcesSubFolder);
+
+        if (resWeapons != null && resWeapons.Length > 0)
+        {
+            loadedWeapons.AddRange(resWeapons);
+            Debug.Log($"[WeaponController] Successfully loaded {loadedWeapons.Count} weapons from Resources/{resourcesSubFolder}");
+        }
+        else if (fallbackWeaponPrefabs.Count > 0)
+        {
+            loadedWeapons.AddRange(fallbackWeaponPrefabs);
+        }
+
+        // Initialize Pools
+        for (int i = 0; i < loadedWeapons.Count; i++)
+        {
+            if (!poolDictionary.ContainsKey(i))
+            {
+                poolDictionary.Add(i, new Queue<ProjectileMover>());
+            }
+        }
     }
 
     void Update()
@@ -70,7 +95,6 @@ public class WeaponFormationController : MonoBehaviour
         HandleInput();
     }
 
-    // Jitter/Shaking se bachne ke liye camera movement hamesha LateUpdate me hoti hai
     void LateUpdate()
     {
         UpdateCameraTransform();
@@ -78,7 +102,9 @@ public class WeaponFormationController : MonoBehaviour
 
     private void HandleInput()
     {
-        // 1. Screen Touch Down (Drag Shuru)
+        if (loadedWeapons.Count == 0) return;
+
+        // 1. Touch Down
         if (Input.GetMouseButtonDown(0))
         {
             isDragging = true;
@@ -86,29 +112,25 @@ public class WeaponFormationController : MonoBehaviour
             targetPanX = 0f;
             targetPanY = 0f;
 
-            // DOTween ke zariye camera ko smoothly thoda peeche push karein
             zoomTween?.Kill();
             zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, cameraPushBackDistance, zoomDuration)
                                .SetEase(Ease.OutQuad);
 
-            // Pehli knife touch point par create karein
             SpawnKnife(Input.mousePosition);
         }
 
-        // 2. Dragging Finger
+        // 2. Drag
         if (Input.GetMouseButton(0) && isDragging)
         {
             Vector2 currentScreenPos = Input.mousePosition;
             Vector2 dragDelta = currentScreenPos - touchStartScreenPos;
 
-            // Clamped pan values calculate karein
             float normX = Mathf.Clamp(dragDelta.x / dragRange, -1f, 1f);
             float normY = Mathf.Clamp(dragDelta.y / dragRange, -1f, 1f);
 
             targetPanX = normX * maxPanX;
             targetPanY = normY * maxPanY;
 
-            // Check distance to spawn next knife
             Vector3 currentWorldPos = GetWorldPosFromScreen(currentScreenPos);
             if (Vector3.Distance(currentWorldPos, lastSpawnWorldPos) >= minDistanceBetweenKnives)
             {
@@ -116,7 +138,7 @@ public class WeaponFormationController : MonoBehaviour
             }
         }
 
-        // 3. Touch Up (Finger Release - Shoot & Reset)
+        // 3. Touch Up (Shoot & Reset)
         if (Input.GetMouseButtonUp(0) && isDragging)
         {
             isDragging = false;
@@ -126,54 +148,165 @@ public class WeaponFormationController : MonoBehaviour
 
     private void SpawnKnife(Vector2 screenPos)
     {
+        // DEV OVERRIDE CHECK: Agar Dev mode active hai to naam se index resolve karein
+        int activeIdx = GetTargetWeaponIndex();
+
         Vector3 spawnWorldPos = GetWorldPosFromScreen(screenPos);
-        GameObject knifeObj;
+        ProjectileMover projectile = GetProjectileFromPool(activeIdx, spawnWorldPos);
 
-        // Object Pooling: agar pehle se disable object para hai to use karein
-        if (knifePool.Count > 0)
-        {
-            knifeObj = knifePool.Dequeue();
-            knifeObj.SetActive(true);
-            knifeObj.GetComponent<WeaponProjectile>()?.ResetState();
-        }
-        else
-        {
-            knifeObj = Instantiate(knifePrefab, transform);
-        }
-
-        knifeObj.transform.position = spawnWorldPos;
-        // Direction hamesha forward samne ki taraf
-        knifeObj.transform.rotation = Quaternion.LookRotation(mainCamera.transform.forward);
-
-        lastSpawnWorldPos = spawnWorldPos;
-
-        WeaponProjectile projectile = knifeObj.GetComponent<WeaponProjectile>();
         if (projectile != null)
         {
-            spawnedKnives.Add(projectile);
-        }
+            lastSpawnWorldPos = spawnWorldPos;
+            activeKnivesOnScreen.Add(projectile);
 
-        // Agar limit cross ho jaye to sab se purani knife recycle karein
-        if (spawnedKnives.Count > maxKnivesLimit)
-        {
-            WeaponProjectile oldest = spawnedKnives[0];
-            spawnedKnives.RemoveAt(0);
-            oldest.gameObject.SetActive(false);
-            knifePool.Enqueue(oldest.gameObject);
+            // Max limit recycle
+            if (activeKnivesOnScreen.Count > maxKnivesLimit)
+            {
+                ProjectileMover oldest = activeKnivesOnScreen[0];
+                activeKnivesOnScreen.RemoveAt(0);
+                ReturnProjectileToPool(oldest);
+            }
         }
     }
+
+    /// <summary>
+    /// Dev Check ke mutabiq index nikalta hai
+    /// </summary>
+    private int GetTargetWeaponIndex()
+    {
+        if (useDevWeaponByName && !string.IsNullOrEmpty(devWeaponName))
+        {
+            for (int i = 0; i < loadedWeapons.Count; i++)
+            {
+                if (loadedWeapons[i] != null && loadedWeapons[i].name.Equals(devWeaponName.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            // Agar loaded list me na mile to direct Resources se load karke add karein
+            GameObject directLoaded = Resources.Load<GameObject>($"{resourcesSubFolder}/{devWeaponName.Trim()}");
+            if (directLoaded != null)
+            {
+                loadedWeapons.Add(directLoaded);
+                int newIdx = loadedWeapons.Count - 1;
+                poolDictionary.Add(newIdx, new Queue<ProjectileMover>());
+                return newIdx;
+            }
+
+            Debug.LogWarning($"[WeaponController DEV] '{devWeaponName}' naam ka prefab nahi mila! Default index ({currentWeaponIndex}) use ho raha hai.");
+        }
+
+        return currentWeaponIndex;
+    }
+
+    #region Object Pooling
+
+    private ProjectileMover GetProjectileFromPool(int weaponIdx, Vector3 position)
+    {
+        if (weaponIdx < 0 || weaponIdx >= loadedWeapons.Count) return null;
+
+        if (!poolDictionary.ContainsKey(weaponIdx))
+        {
+            poolDictionary.Add(weaponIdx, new Queue<ProjectileMover>());
+        }
+
+        Queue<ProjectileMover> queue = poolDictionary[weaponIdx];
+        ProjectileMover proj = null;
+
+        while (queue.Count > 0)
+        {
+            proj = queue.Dequeue();
+            if (proj != null) break;
+        }
+
+        if (proj == null)
+        {
+            GameObject obj = Instantiate(loadedWeapons[weaponIdx], transform);
+            proj = obj.GetComponent<ProjectileMover>();
+            if (proj == null)
+                proj = obj.AddComponent<ProjectileMover>();
+
+            proj.weaponIndex = weaponIdx;
+        }
+
+        proj.transform.position = position;
+        proj.transform.rotation = Quaternion.LookRotation(mainCamera.transform.forward);
+        proj.gameObject.SetActive(true);
+        proj.OnSpawned();
+
+        return proj;
+    }
+
+    private void ReturnProjectileToPool(ProjectileMover proj)
+    {
+        if (proj != null)
+        {
+            proj.ReturnToPool();
+            if (poolDictionary.ContainsKey(proj.weaponIndex))
+            {
+                poolDictionary[proj.weaponIndex].Enqueue(proj);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Public Weapon Switch Functions (UI & Code)
+
+    public void SwitchNextWeapon()
+    {
+        if (loadedWeapons.Count <= 1) return;
+        int nextIndex = (currentWeaponIndex + 1) % loadedWeapons.Count;
+        SwitchWeapon(nextIndex);
+    }
+
+    public void SwitchWeapon(int newIndex)
+    {
+        if (newIndex < 0 || newIndex >= loadedWeapons.Count) return;
+        if (currentWeaponIndex == newIndex) return;
+
+        // Active unlaunched knives reset karein
+        if (activeKnivesOnScreen.Count > 0 && isDragging)
+        {
+            for (int i = 0; i < activeKnivesOnScreen.Count; i++)
+            {
+                ReturnProjectileToPool(activeKnivesOnScreen[i]);
+            }
+            activeKnivesOnScreen.Clear();
+        }
+
+        currentWeaponIndex = newIndex;
+        Debug.Log($"[WeaponController] Switched to: {loadedWeapons[currentWeaponIndex].name} (Index: {currentWeaponIndex})");
+    }
+
+    /// <summary>
+    /// Naam ke zariye runtime par weapon switch karne ke liye
+    /// </summary>
+    public void SwitchWeaponByName(string weaponName)
+    {
+        for (int i = 0; i < loadedWeapons.Count; i++)
+        {
+            if (loadedWeapons[i] != null && loadedWeapons[i].name.Equals(weaponName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                SwitchWeapon(i);
+                return;
+            }
+        }
+        Debug.LogWarning($"[WeaponController] '{weaponName}' naam ka weapon nahi mila!");
+    }
+
+    #endregion
 
     private void UpdateCameraTransform()
     {
         if (mainCamera == null) return;
 
-        // Camera ke Local Axes ke hisab se exact target calculate karein (World coordinates ka issue fix)
         Vector3 targetPos = defaultCameraPos
                             + (mainCamera.transform.right * targetPanX)
                             + (mainCamera.transform.up * targetPanY)
                             - (mainCamera.transform.forward * currentZoomOffset);
 
-        // Smooth follow
         mainCamera.transform.position = Vector3.Lerp(
             mainCamera.transform.position,
             targetPos,
@@ -186,17 +319,15 @@ public class WeaponFormationController : MonoBehaviour
         targetPanX = 0f;
         targetPanY = 0f;
 
-        // 1. Saari spawned knives ko launch/shoot karein
-        for (int i = 0; i < spawnedKnives.Count; i++)
+        for (int i = 0; i < activeKnivesOnScreen.Count; i++)
         {
-            if (spawnedKnives[i] != null)
+            if (activeKnivesOnScreen[i] != null)
             {
-                spawnedKnives[i].Launch();
+                activeKnivesOnScreen[i].Launch();
             }
         }
-        spawnedKnives.Clear();
+        activeKnivesOnScreen.Clear();
 
-        // 2. Camera Zoom Offset ko wapis 0 par smoothly layein
         zoomTween?.Kill();
         zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, 0f, zoomDuration)
                            .SetEase(Ease.OutQuad);
