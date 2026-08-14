@@ -148,7 +148,6 @@ public class WeaponFormationController : MonoBehaviour
 
     private void SpawnKnife(Vector2 screenPos)
     {
-        // DEV OVERRIDE CHECK: Agar Dev mode active hai to naam se index resolve karein
         int activeIdx = GetTargetWeaponIndex();
 
         Vector3 spawnWorldPos = GetWorldPosFromScreen(screenPos);
@@ -158,6 +157,9 @@ public class WeaponFormationController : MonoBehaviour
         {
             lastSpawnWorldPos = spawnWorldPos;
             activeKnivesOnScreen.Add(projectile);
+
+            // HAPTIC: Har knife spawn hone par satisfying light click
+            GameManager.Instance?.TriggerLightHaptic();
 
             // Max limit recycle
             if (activeKnivesOnScreen.Count > maxKnivesLimit)
@@ -169,9 +171,6 @@ public class WeaponFormationController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Dev Check ke mutabiq index nikalta hai
-    /// </summary>
     private int GetTargetWeaponIndex()
     {
         if (useDevWeaponByName && !string.IsNullOrEmpty(devWeaponName))
@@ -184,7 +183,6 @@ public class WeaponFormationController : MonoBehaviour
                 }
             }
 
-            // Agar loaded list me na mile to direct Resources se load karke add karein
             GameObject directLoaded = Resources.Load<GameObject>($"{resourcesSubFolder}/{devWeaponName.Trim()}");
             if (directLoaded != null)
             {
@@ -252,7 +250,7 @@ public class WeaponFormationController : MonoBehaviour
 
     #endregion
 
-    #region Public Weapon Switch Functions (UI & Code)
+    #region Public Weapon Switch Functions
 
     public void SwitchNextWeapon()
     {
@@ -266,7 +264,9 @@ public class WeaponFormationController : MonoBehaviour
         if (newIndex < 0 || newIndex >= loadedWeapons.Count) return;
         if (currentWeaponIndex == newIndex) return;
 
-        // Active unlaunched knives reset karein
+        // HAPTIC: Weapon switch button click
+        GameManager.Instance?.TriggerLightHaptic();
+
         if (activeKnivesOnScreen.Count > 0 && isDragging)
         {
             for (int i = 0; i < activeKnivesOnScreen.Count; i++)
@@ -280,9 +280,6 @@ public class WeaponFormationController : MonoBehaviour
         Debug.Log($"[WeaponController] Switched to: {loadedWeapons[currentWeaponIndex].name} (Index: {currentWeaponIndex})");
     }
 
-    /// <summary>
-    /// Naam ke zariye runtime par weapon switch karne ke liye
-    /// </summary>
     public void SwitchWeaponByName(string weaponName)
     {
         for (int i = 0; i < loadedWeapons.Count; i++)
@@ -319,14 +316,20 @@ public class WeaponFormationController : MonoBehaviour
         targetPanX = 0f;
         targetPanY = 0f;
 
-        for (int i = 0; i < activeKnivesOnScreen.Count; i++)
+        if (activeKnivesOnScreen.Count > 0)
         {
-            if (activeKnivesOnScreen[i] != null)
+            // HAPTIC: Shoot hone par solid medium vibration kick
+            GameManager.Instance?.TriggerMediumHaptic();
+
+            for (int i = 0; i < activeKnivesOnScreen.Count; i++)
             {
-                activeKnivesOnScreen[i].Launch();
+                if (activeKnivesOnScreen[i] != null)
+                {
+                    activeKnivesOnScreen[i].Launch();
+                }
             }
+            activeKnivesOnScreen.Clear();
         }
-        activeKnivesOnScreen.Clear();
 
         zoomTween?.Kill();
         zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, 0f, zoomDuration)

@@ -141,6 +141,7 @@ public class ProjectileMover : MonoBehaviour
     private void HandleHit(Vector3 point, Vector3 normal)
     {
         hasCollided = true;
+        GameManager.Instance?.TriggerLightHaptic();
 
         if (rb != null)
         {
