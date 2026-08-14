@@ -8,6 +8,16 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/GamePlay.unity
+    guid: 355c5aade36d3514691a0c8a4d9c9a73
+  - enabled: 0
+    path: Assets/Hovl Studio/AAA Projectiles Vol 1/Demo scenes/Demo projectiles(Standard).unity
+    guid: d6851c279dc96cc469706280632c676c
+  - enabled: 0
+    path: Assets/Hovl Studio/AAA Projectiles Vol 1/Demo scenes/Demo projectiles(Full
+      particles).unity
+    guid: d77992b5fd5ef82498c6286aa500bdd6
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
