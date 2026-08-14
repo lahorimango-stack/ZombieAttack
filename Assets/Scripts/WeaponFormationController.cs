@@ -8,34 +8,44 @@ public class WeaponFormationController : MonoBehaviour
     [Header("--- 1. Resources & Weapon Settings ---")]
     [Tooltip("Assets/Resources folder ke andar ka sub-folder (e.g. 'Projectiles')")]
     [SerializeField] private string resourcesSubFolder = "Projectiles";
-
-    [Tooltip("Fallback prefabs agar Resources use na karna ho")]
     [SerializeField] private List<GameObject> fallbackWeaponPrefabs = new List<GameObject>();
-
-    [Tooltip("Currently active weapon index")]
     [SerializeField] private int currentWeaponIndex = 0;
 
 
     [Header("--- 2. Dev / Debug Name Override ---")]
-    [Tooltip("Dev Check: Agar ye ON hoga to niche diye gaye 'Dev Weapon Name' se projectile spawn hoga")]
     [SerializeField] private bool useDevWeaponByName = false;
-
-    [Tooltip("Dev Mode mein jis prefab ka exact naam yahan likhenge wohi spawn hoga (e.g. 'Knife_Blue', 'Fireball')")]
     [SerializeField] private string devWeaponName = "";
 
 
-    [Header("--- 3. Weapon Spawning Limits ---")]
+    [Header("--- 3. Weapon Spawning & Speed Control ---")]
+    [Tooltip("Camera se kitne distance aage knife spawn hogi")]
     [SerializeField] private float spawnDepthFromCamera = 2.5f;
-    [SerializeField] private float minDistanceBetweenKnives = 0.45f;
+
+    [Tooltip("SPEED CONTROL: Do knives ke darmiyan minimum kitna time delay (seconds) hona chahiye. (0.05f = Fast, 0.1f = Balanced, 0.18f = Slow/Relaxed)")]
+    [SerializeField] private float spawnInterval = 0.08f;
+
+    [Tooltip("DISTANCE CONTROL: Do knives ke darmiyan kitna drag distance hona chahiye. Ise barhane se bhi speed control hoti hai")]
+    [SerializeField] private float minDistanceBetweenKnives = 0.5f;
+
+    [Tooltip("Screen par ek waqt mein max kitni knives ban sakti hain")]
     [SerializeField] private int maxKnivesLimit = 25;
 
+    [Tooltip("Knife spawn hote waqt elastic pop-in bounce ka time")]
+    [SerializeField] private float spawnPopDuration = 0.22f;
 
-    [Header("--- 4. Camera Pan & Zoom (DOTween) ---")]
+
+    [Header("--- 4. Elastic Camera Pan & Smoothness ---")]
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private float panSmoothSpeed = 10f;
+    [SerializeField] private float panSmoothTime = 0.1f;
     [SerializeField] private float dragRange = 250f;
-    [SerializeField] private float maxPanX = 1.5f;
-    [SerializeField] private float maxPanY = 0.8f;
+    [SerializeField] private float maxPanX = 1.6f;
+    [SerializeField] private float maxUpwardPanY = 1.0f;
+    [SerializeField] private float maxDownwardPanY = 0.35f;
+    [SerializeField] private float minCameraHeightY = 1.2f;
+    [SerializeField] private float elasticStretchAmount = 0.4f;
+
+
+    [Header("--- 5. Camera Zoom (Push Back Feel) ---")]
     [SerializeField] private float cameraPushBackDistance = 0.8f;
     [SerializeField] private float zoomDuration = 0.25f;
 
@@ -51,8 +61,12 @@ public class WeaponFormationController : MonoBehaviour
     private float targetPanX = 0f;
     private float targetPanY = 0f;
     private float currentZoomOffset = 0f;
+    private Vector3 cameraVelocity = Vector3.zero;
     private bool isDragging = false;
     private Tween zoomTween;
+
+    // Spawning Speed Timer
+    private float nextAllowedSpawnTime = 0f;
 
     void Awake()
     {
@@ -60,6 +74,11 @@ public class WeaponFormationController : MonoBehaviour
             mainCamera = Camera.main;
 
         defaultCameraPos = mainCamera.transform.position;
+
+        if (defaultCameraPos.y < minCameraHeightY)
+        {
+            minCameraHeightY = defaultCameraPos.y - 0.2f;
+        }
 
         LoadWeaponsFromResources();
     }
@@ -73,14 +92,13 @@ public class WeaponFormationController : MonoBehaviour
         if (resWeapons != null && resWeapons.Length > 0)
         {
             loadedWeapons.AddRange(resWeapons);
-            Debug.Log($"[WeaponController] Successfully loaded {loadedWeapons.Count} weapons from Resources/{resourcesSubFolder}");
+            Debug.Log($"[WeaponController] Loaded {loadedWeapons.Count} weapons from Resources/{resourcesSubFolder}");
         }
         else if (fallbackWeaponPrefabs.Count > 0)
         {
             loadedWeapons.AddRange(fallbackWeaponPrefabs);
         }
 
-        // Initialize Pools
         for (int i = 0; i < loadedWeapons.Count; i++)
         {
             if (!poolDictionary.ContainsKey(i))
@@ -111,6 +129,7 @@ public class WeaponFormationController : MonoBehaviour
             touchStartScreenPos = Input.mousePosition;
             targetPanX = 0f;
             targetPanY = 0f;
+            nextAllowedSpawnTime = 0f; // Pehli knife foran bina delay ke banegi
 
             zoomTween?.Kill();
             zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, cameraPushBackDistance, zoomDuration)
@@ -119,22 +138,23 @@ public class WeaponFormationController : MonoBehaviour
             SpawnKnife(Input.mousePosition);
         }
 
-        // 2. Drag
+        // 2. Drag (Speed + Distance Controlled)
         if (Input.GetMouseButton(0) && isDragging)
         {
             Vector2 currentScreenPos = Input.mousePosition;
             Vector2 dragDelta = currentScreenPos - touchStartScreenPos;
 
-            float normX = Mathf.Clamp(dragDelta.x / dragRange, -1f, 1f);
-            float normY = Mathf.Clamp(dragDelta.y / dragRange, -1f, 1f);
-
-            targetPanX = normX * maxPanX;
-            targetPanY = normY * maxPanY;
+            targetPanX = CalculateElasticOffset(dragDelta.x, dragRange, maxPanX);
+            float targetMaxY = dragDelta.y >= 0 ? maxUpwardPanY : maxDownwardPanY;
+            targetPanY = CalculateElasticOffset(dragDelta.y, dragRange, targetMaxY);
 
             Vector3 currentWorldPos = GetWorldPosFromScreen(currentScreenPos);
-            if (Vector3.Distance(currentWorldPos, lastSpawnWorldPos) >= minDistanceBetweenKnives)
+
+            // DUAL GATING: Distance Check + Time Interval Rate Limit
+            if (Time.time >= nextAllowedSpawnTime && Vector3.Distance(currentWorldPos, lastSpawnWorldPos) >= minDistanceBetweenKnives)
             {
                 SpawnKnife(currentScreenPos);
+                nextAllowedSpawnTime = Time.time + spawnInterval; // Cooldown timer reset
             }
         }
 
@@ -146,11 +166,27 @@ public class WeaponFormationController : MonoBehaviour
         }
     }
 
+    private float CalculateElasticOffset(float delta, float range, float maxPan)
+    {
+        float normalized = delta / range;
+        float absNorm = Mathf.Abs(normalized);
+        float sign = Mathf.Sign(normalized);
+
+        if (absNorm <= 1f)
+        {
+            return normalized * maxPan;
+        }
+
+        float overDrag = absNorm - 1f;
+        float elasticStretch = (1f - (1f / (overDrag * 0.5f + 1f))) * (maxPan * elasticStretchAmount);
+        return sign * (maxPan + elasticStretch);
+    }
+
     private void SpawnKnife(Vector2 screenPos)
     {
         int activeIdx = GetTargetWeaponIndex();
-
         Vector3 spawnWorldPos = GetWorldPosFromScreen(screenPos);
+
         ProjectileMover projectile = GetProjectileFromPool(activeIdx, spawnWorldPos);
 
         if (projectile != null)
@@ -158,7 +194,12 @@ public class WeaponFormationController : MonoBehaviour
             lastSpawnWorldPos = spawnWorldPos;
             activeKnivesOnScreen.Add(projectile);
 
-            // HAPTIC: Har knife spawn hone par satisfying light click
+            // Elastic Pop Animation
+            projectile.transform.localScale = Vector3.zero;
+            projectile.transform.DOScale(Vector3.one, spawnPopDuration).SetEase(Ease.OutBack);
+
+            // Audio & Haptic Feedback
+            SoundManager.Instance?.PlaySpawnSound();
             GameManager.Instance?.TriggerLightHaptic();
 
             // Max limit recycle
@@ -171,34 +212,56 @@ public class WeaponFormationController : MonoBehaviour
         }
     }
 
-    private int GetTargetWeaponIndex()
+    private void UpdateCameraTransform()
     {
-        if (useDevWeaponByName && !string.IsNullOrEmpty(devWeaponName))
+        if (mainCamera == null) return;
+
+        Vector3 targetPos = defaultCameraPos
+                            + (mainCamera.transform.right * targetPanX)
+                            + (mainCamera.transform.up * targetPanY)
+                            - (mainCamera.transform.forward * currentZoomOffset);
+
+        if (targetPos.y < minCameraHeightY)
         {
-            for (int i = 0; i < loadedWeapons.Count; i++)
-            {
-                if (loadedWeapons[i] != null && loadedWeapons[i].name.Equals(devWeaponName.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    return i;
-                }
-            }
-
-            GameObject directLoaded = Resources.Load<GameObject>($"{resourcesSubFolder}/{devWeaponName.Trim()}");
-            if (directLoaded != null)
-            {
-                loadedWeapons.Add(directLoaded);
-                int newIdx = loadedWeapons.Count - 1;
-                poolDictionary.Add(newIdx, new Queue<ProjectileMover>());
-                return newIdx;
-            }
-
-            Debug.LogWarning($"[WeaponController DEV] '{devWeaponName}' naam ka prefab nahi mila! Default index ({currentWeaponIndex}) use ho raha hai.");
+            targetPos.y = minCameraHeightY;
         }
 
-        return currentWeaponIndex;
+        mainCamera.transform.position = Vector3.SmoothDamp(
+            mainCamera.transform.position,
+            targetPos,
+            ref cameraVelocity,
+            panSmoothTime
+        );
     }
 
-    #region Object Pooling
+    private void OnRelease()
+    {
+        targetPanX = 0f;
+        targetPanY = 0f;
+
+        if (activeKnivesOnScreen.Count > 0)
+        {
+            SoundManager.Instance?.PlayShootSound();
+            GameManager.Instance?.TriggerMediumHaptic();
+
+            for (int i = 0; i < activeKnivesOnScreen.Count; i++)
+            {
+                if (activeKnivesOnScreen[i] != null)
+                {
+                    activeKnivesOnScreen[i].transform.DOKill();
+                    activeKnivesOnScreen[i].transform.localScale = Vector3.one;
+                    activeKnivesOnScreen[i].Launch();
+                }
+            }
+            activeKnivesOnScreen.Clear();
+        }
+
+        zoomTween?.Kill();
+        zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, 0f, zoomDuration)
+                           .SetEase(Ease.OutQuad);
+    }
+
+    #region Object Pooling & Dev Mode
 
     private ProjectileMover GetProjectileFromPool(int weaponIdx, Vector3 position)
     {
@@ -240,12 +303,38 @@ public class WeaponFormationController : MonoBehaviour
     {
         if (proj != null)
         {
+            proj.transform.DOKill();
             proj.ReturnToPool();
             if (poolDictionary.ContainsKey(proj.weaponIndex))
             {
                 poolDictionary[proj.weaponIndex].Enqueue(proj);
             }
         }
+    }
+
+    private int GetTargetWeaponIndex()
+    {
+        if (useDevWeaponByName && !string.IsNullOrEmpty(devWeaponName))
+        {
+            for (int i = 0; i < loadedWeapons.Count; i++)
+            {
+                if (loadedWeapons[i] != null && loadedWeapons[i].name.Equals(devWeaponName.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            GameObject directLoaded = Resources.Load<GameObject>($"{resourcesSubFolder}/{devWeaponName.Trim()}");
+            if (directLoaded != null)
+            {
+                loadedWeapons.Add(directLoaded);
+                int newIdx = loadedWeapons.Count - 1;
+                poolDictionary.Add(newIdx, new Queue<ProjectileMover>());
+                return newIdx;
+            }
+        }
+
+        return currentWeaponIndex;
     }
 
     #endregion
@@ -264,7 +353,7 @@ public class WeaponFormationController : MonoBehaviour
         if (newIndex < 0 || newIndex >= loadedWeapons.Count) return;
         if (currentWeaponIndex == newIndex) return;
 
-        // HAPTIC: Weapon switch button click
+        SoundManager.Instance?.PlayButtonClick();
         GameManager.Instance?.TriggerLightHaptic();
 
         if (activeKnivesOnScreen.Count > 0 && isDragging)
@@ -277,7 +366,6 @@ public class WeaponFormationController : MonoBehaviour
         }
 
         currentWeaponIndex = newIndex;
-        Debug.Log($"[WeaponController] Switched to: {loadedWeapons[currentWeaponIndex].name} (Index: {currentWeaponIndex})");
     }
 
     public void SwitchWeaponByName(string weaponName)
@@ -290,51 +378,9 @@ public class WeaponFormationController : MonoBehaviour
                 return;
             }
         }
-        Debug.LogWarning($"[WeaponController] '{weaponName}' naam ka weapon nahi mila!");
     }
 
     #endregion
-
-    private void UpdateCameraTransform()
-    {
-        if (mainCamera == null) return;
-
-        Vector3 targetPos = defaultCameraPos
-                            + (mainCamera.transform.right * targetPanX)
-                            + (mainCamera.transform.up * targetPanY)
-                            - (mainCamera.transform.forward * currentZoomOffset);
-
-        mainCamera.transform.position = Vector3.Lerp(
-            mainCamera.transform.position,
-            targetPos,
-            panSmoothSpeed * Time.deltaTime
-        );
-    }
-
-    private void OnRelease()
-    {
-        targetPanX = 0f;
-        targetPanY = 0f;
-
-        if (activeKnivesOnScreen.Count > 0)
-        {
-            // HAPTIC: Shoot hone par solid medium vibration kick
-            GameManager.Instance?.TriggerMediumHaptic();
-
-            for (int i = 0; i < activeKnivesOnScreen.Count; i++)
-            {
-                if (activeKnivesOnScreen[i] != null)
-                {
-                    activeKnivesOnScreen[i].Launch();
-                }
-            }
-            activeKnivesOnScreen.Clear();
-        }
-
-        zoomTween?.Kill();
-        zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, 0f, zoomDuration)
-                           .SetEase(Ease.OutQuad);
-    }
 
     private Vector3 GetWorldPosFromScreen(Vector2 screenPos)
     {
