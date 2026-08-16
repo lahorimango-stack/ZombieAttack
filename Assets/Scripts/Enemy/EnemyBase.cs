@@ -16,24 +16,26 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     protected float currentHealth;
 
 
-    [Header("--- 3. Hit Movement Freeze & Knockback ---")]
+    [Header("--- 3. Z-Axis Hit Knockback ---")]
+    [Tooltip("Hit lagne par zombie kitne seconds tak rukaa rahega")]
     [SerializeField] protected float hitMovementFreezeDuration = 0.5f;
+
+    [Tooltip("Knife lagne par zombie Z-Axis par kitne units peeche dhakka khayega")]
     [SerializeField] protected float hitKnockbackDistance = 0.4f;
+
+    [Tooltip("Peeche push hone ka time (seconds)")]
     [SerializeField] protected float knockbackDuration = 0.12f;
 
 
-    [Header("--- 4. Death & Ragdoll Impulse (Hips & Spine) ---")]
-    [Tooltip("Marte waqt Hips/Spine par kitni backward force lagay (Urrne ke liye)")]
-    [SerializeField] protected float deathKickForce = 25f;
+    [Header("--- 4. Z-Axis Death Ragdoll Impulse ---")]
+    [Tooltip("Marte waqt Z-Axis par kitni backward force lagay (Seedha peeche urrne ke liye)")]
+    [SerializeField] protected float deathKickForce = 20f;
 
-    [Tooltip("Hawa mein toss karne ke liye upward force")]
-    [SerializeField] protected float deathUpwardLift = 6f;
+    [Tooltip("Hawa mein kitna uncha toss hoga (Upward Arc)")]
+    [SerializeField] protected float deathUpwardLift = 7f;
 
-    [Tooltip("Marte waqt body par realistic rotational spin")]
-    [SerializeField] protected float deathTorque = 12f;
-
-    [Tooltip("Specific Main Bone (Hips/Spine/Pelvis). Khali chhorne par script auto-detect kar legi")]
-    [SerializeField] protected Rigidbody mainHipsRigidbody;
+    [Tooltip("Hawa mein urrte waqt realistic tumble")]
+    [SerializeField] protected float deathTorque = 5f;
 
 
     [Header("--- 5. Visual & Mesh Flash ---")]
@@ -78,39 +80,12 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         ragdollRigidbodies = GetComponentsInChildren<Rigidbody>();
         ragdollColliders = GetComponentsInChildren<Collider>();
 
-        // AUTO-DETECT HIPS / SPINE BONE
-        FindMainHipsBone();
-
         CacheAllMeshRenderers();
 
         if (debugAlwaysRagdoll)
             SetRagdollState(true);
         else
             SetRagdollState(false);
-    }
-
-    private void FindMainHipsBone()
-    {
-        if (mainHipsRigidbody == null && ragdollRigidbodies != null)
-        {
-            foreach (var rb in ragdollRigidbodies)
-            {
-                if (rb.gameObject == this.gameObject) continue;
-
-                string boneName = rb.gameObject.name.ToLower();
-                if (boneName.Contains("hip") || boneName.Contains("pelvis") || boneName.Contains("spine") || boneName.Contains("root"))
-                {
-                    mainHipsRigidbody = rb;
-                    break;
-                }
-            }
-
-            // Fallback to first child bone if name doesn't match
-            if (mainHipsRigidbody == null && ragdollRigidbodies.Length > 1)
-            {
-                mainHipsRigidbody = ragdollRigidbodies[1];
-            }
-        }
     }
 
     private void CacheAllMeshRenderers()
@@ -213,6 +188,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         transform.DOPunchScale(initialScale * 0.08f, 0.12f, 1, 0.5f)
                  .OnComplete(() => transform.localScale = initialScale);
 
+        // REQUIREMENT: Strict Z-Axis Knockback
         ApplyHitKnockback(hitDirection);
 
         GameManager.Instance?.TriggerLightHaptic();
@@ -228,16 +204,17 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>
+    /// REQUIREMENT: Force hamesha seedha Z-Axis par lagegi (No sideways drift)
+    /// </summary>
     private void ApplyHitKnockback(Vector3 hitDirection)
     {
-        Vector3 pushDir = hitDirection;
-        pushDir.y = 0f;
+        // Z-Direction check (Hamesha seedha Z+ ya Z- par push hoga)
+        float zSign = hitDirection.z >= 0 ? 1f : -1f;
+        Vector3 pushDir = new Vector3(0f, 0f, zSign);
 
-        if (pushDir == Vector3.zero)
-            pushDir = -transform.forward;
-
-        Vector3 targetPushPos = transform.position + (pushDir.normalized * hitKnockbackDistance);
-        targetPushPos.y = groundFixedY;
+        Vector3 targetPushPos = transform.position + (pushDir * hitKnockbackDistance);
+        targetPushPos.y = groundFixedY; // Ground protection
 
         knockbackTween?.Kill();
         knockbackTween = transform.DOMove(targetPushPos, knockbackDuration).SetEase(Ease.OutQuad);
@@ -252,7 +229,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     }
 
     /// <summary>
-    /// REQUIREMENT FIX: Direct Hips/Spine par Heavy Impulse Force
+    /// REQUIREMENT: Death Force Strictly Z-Axis Backward + Y-Axis Lift
     /// </summary>
     protected virtual void Die(Vector3 hitPoint, Vector3 hitDirection)
     {
@@ -265,43 +242,24 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         GameManager.Instance?.TriggerHeavyHaptic();
         SetRagdollState(true);
 
-        // 1. Force Calculation: Direct Backward + High Upward Lift
-        Vector3 finalImpulse = (hitDirection.normalized * deathKickForce) + (Vector3.up * deathUpwardLift);
+        // Z-Axis strict flight calculation (X = 0 taake left/right na jaye)
+        float zSign = hitDirection.z >= 0 ? 1f : -1f;
+        Vector3 zLaunchVelocity = new Vector3(0f, deathUpwardLift, zSign * deathKickForce);
 
-        // 2. MAIN HIPS / SPINE FORCE (Toss the entire body)
-        if (mainHipsRigidbody != null)
+        // Saare ragdoll bones par Z-Axis velocity apply karein
+        if (ragdollRigidbodies != null)
         {
-            mainHipsRigidbody.linearVelocity = Vector3.zero;
-            mainHipsRigidbody.AddForce(finalImpulse, ForceMode.Impulse);
-            mainHipsRigidbody.AddTorque(Random.insideUnitSphere * deathTorque, ForceMode.Impulse);
-        }
-
-        // 3. Hit Point localized impact force
-        Rigidbody closestBone = GetClosestBone(hitPoint);
-        if (closestBone != null && closestBone != mainHipsRigidbody)
-        {
-            closestBone.AddForceAtPosition(finalImpulse * 0.5f, hitPoint, ForceMode.Impulse);
+            foreach (var rb in ragdollRigidbodies)
+            {
+                if (rb != null && rb.gameObject != this.gameObject)
+                {
+                    rb.linearVelocity = zLaunchVelocity; // Seedha Z par launch
+                    rb.angularVelocity = Random.insideUnitSphere * deathTorque;
+                }
+            }
         }
 
         Destroy(gameObject, 5f);
-    }
-
-    private Rigidbody GetClosestBone(Vector3 point)
-    {
-        Rigidbody closest = null;
-        float minDist = Mathf.Infinity;
-
-        foreach (var rb in ragdollRigidbodies)
-        {
-            if (rb.gameObject == this.gameObject) continue;
-            float dist = Vector3.Distance(rb.position, point);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                closest = rb;
-            }
-        }
-        return closest;
     }
 
     private IEnumerator FlashDamageMeshRoutine()

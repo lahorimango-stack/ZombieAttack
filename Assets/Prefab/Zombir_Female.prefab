@@ -1425,14 +1425,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NormalZombie
   debugAlwaysRagdoll: 0
-  maxHealth: 100
-  moveSpeed: 0
-  hitKnockbackDistance: 0.4
-  knockbackDuration: 0.12
-  hitStumblePauseTime: 0.15
-  rotationRecoverySpeed: 10
-  deathKickForce: 15
-  deathUpwardLift: 3
+  maxHealth: 5
+  moveSpeed: 2
+  hitMovementFreezeDuration: 1.5
+  hitKnockbackDistance: 1
+  knockbackDuration: 0.24
+  deathKickForce: 18
+  deathUpwardLift: 6
+  deathTorque: 4
   damageFlashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.08
   hitTriggerName: Hit
