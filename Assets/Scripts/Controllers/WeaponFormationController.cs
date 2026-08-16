@@ -21,10 +21,10 @@ public class WeaponFormationController : MonoBehaviour
     [Tooltip("Camera se kitne distance aage knife spawn hogi")]
     [SerializeField] private float spawnDepthFromCamera = 2.5f;
 
-    [Tooltip("SPEED CONTROL: Do knives ke darmiyan minimum kitna time delay (seconds) hona chahiye. (0.05f = Fast, 0.1f = Balanced, 0.18f = Slow/Relaxed)")]
+    [Tooltip("SPEED CONTROL: Do knives ke darmiyan minimum kitna time delay (seconds) hona chahiye.")]
     [SerializeField] private float spawnInterval = 0.08f;
 
-    [Tooltip("DISTANCE CONTROL: Do knives ke darmiyan kitna drag distance hona chahiye. Ise barhane se bhi speed control hoti hai")]
+    [Tooltip("DISTANCE CONTROL: Do knives ke darmiyan kitna drag distance hona chahiye.")]
     [SerializeField] private float minDistanceBetweenKnives = 0.5f;
 
     [Tooltip("Screen par ek waqt mein max kitni knives ban sakti hain")]
@@ -63,6 +63,7 @@ public class WeaponFormationController : MonoBehaviour
     private float currentZoomOffset = 0f;
     private Vector3 cameraVelocity = Vector3.zero;
     private bool isDragging = false;
+    private bool isZoomCompleted = false; // REQUIREMENT: Zoom complete hone ka check
     private Tween zoomTween;
 
     // Spawning Speed Timer
@@ -122,23 +123,31 @@ public class WeaponFormationController : MonoBehaviour
     {
         if (loadedWeapons.Count == 0) return;
 
-        // 1. Touch Down
+        // 1. Touch Down (Camera Zoom Out Start)
         if (Input.GetMouseButtonDown(0))
         {
             isDragging = true;
+            isZoomCompleted = false; // Zoom complete hone tak spawning band
             touchStartScreenPos = Input.mousePosition;
             targetPanX = 0f;
             targetPanY = 0f;
-            nextAllowedSpawnTime = 0f; // Pehli knife foran bina delay ke banegi
+            nextAllowedSpawnTime = 0f;
 
             zoomTween?.Kill();
             zoomTween = DOTween.To(() => currentZoomOffset, x => currentZoomOffset = x, cameraPushBackDistance, zoomDuration)
-                               .SetEase(Ease.OutQuad);
-
-            SpawnKnife(Input.mousePosition);
+                               .SetEase(Ease.OutQuad)
+                               .OnComplete(() =>
+                               {
+                                   // REQUIREMENT FIX: Zoom Out complete hone ke baad hi spawn hoga
+                                   if (isDragging)
+                                   {
+                                       isZoomCompleted = true;
+                                       SpawnKnife(Input.mousePosition);
+                                   }
+                               });
         }
 
-        // 2. Drag (Speed + Distance Controlled)
+        // 2. Dragging (Sirf tab spawn karein jab Zoom Out complete ho chuka ho)
         if (Input.GetMouseButton(0) && isDragging)
         {
             Vector2 currentScreenPos = Input.mousePosition;
@@ -148,13 +157,16 @@ public class WeaponFormationController : MonoBehaviour
             float targetMaxY = dragDelta.y >= 0 ? maxUpwardPanY : maxDownwardPanY;
             targetPanY = CalculateElasticOffset(dragDelta.y, dragRange, targetMaxY);
 
-            Vector3 currentWorldPos = GetWorldPosFromScreen(currentScreenPos);
-
-            // DUAL GATING: Distance Check + Time Interval Rate Limit
-            if (Time.time >= nextAllowedSpawnTime && Vector3.Distance(currentWorldPos, lastSpawnWorldPos) >= minDistanceBetweenKnives)
+            // Sirf tab knives banegi jab Camera Zoom Out poora ho chuka ho
+            if (isZoomCompleted)
             {
-                SpawnKnife(currentScreenPos);
-                nextAllowedSpawnTime = Time.time + spawnInterval; // Cooldown timer reset
+                Vector3 currentWorldPos = GetWorldPosFromScreen(currentScreenPos);
+
+                if (Time.time >= nextAllowedSpawnTime && Vector3.Distance(currentWorldPos, lastSpawnWorldPos) >= minDistanceBetweenKnives)
+                {
+                    SpawnKnife(currentScreenPos);
+                    nextAllowedSpawnTime = Time.time + spawnInterval;
+                }
             }
         }
 
@@ -162,6 +174,7 @@ public class WeaponFormationController : MonoBehaviour
         if (Input.GetMouseButtonUp(0) && isDragging)
         {
             isDragging = false;
+            isZoomCompleted = false;
             OnRelease();
         }
     }

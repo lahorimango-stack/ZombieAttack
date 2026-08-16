@@ -1,18 +1,23 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ProjectileMover : MonoBehaviour
 {
-    [Header("--- Movement Settings ---")]
+    [Header("--- 1. Movement & Damage ---")]
     [Tooltip("Shoot hone ke baad aage bhaagne ki speed")]
     public float speed = 35f;
+
+    [Tooltip("Dushman ko kitna damage lagay ga")]
+    public float damageAmount = 50f;
 
     [Tooltip("Shoot hone ke kitne seconds baad despawn ho kar pool mein wapis jaye")]
     public float lifeTimeAfterLaunch = 3f;
     public bool isShoot = false;
 
-    [Header("--- VFX Settings ---")]
+
+    [Header("--- 2. VFX Settings ---")]
     [Tooltip("Spawn hote hi jo Flash VFX chalega")]
     public GameObject flash;
 
@@ -22,35 +27,35 @@ public class ProjectileMover : MonoBehaviour
     public bool UseFirePointRotation;
     public Vector3 rotationOffset = Vector3.zero;
 
-    [Tooltip("Takrane par jo particles/trails alag (detach) hone chahiye")]
-    public GameObject[] Detached;
 
     [HideInInspector] public int weaponIndex = 0;
+    public Action<ProjectileMover> OnReturnToPoolCallback;
 
     private Rigidbody rb;
-    private Collider col;
+    private Collider[] allColliders; // Root + Child saare Sphere/Box colliders
+    private ParticleSystem[] allChildParticles;
+    private List<ParticleCollisionEvent> collisionEvents = new List<ParticleCollisionEvent>();
     private bool hasCollided = false;
     private Coroutine autoDespawnRoutine;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        col = GetComponent<Collider>();
+        // CRITICAL FIX 1: Saare child colliders (Sphere, Box, Capsule) dhoond lein
+        allColliders = GetComponentsInChildren<Collider>(true);
+        allChildParticles = GetComponentsInChildren<ParticleSystem>(true);
     }
 
     /// <summary>
-    /// Pool se nikal kar spawn hote hi call hota hai
+    /// Pool se nikalte waqt call hota hai
     /// </summary>
     public void OnSpawned()
     {
         isShoot = false;
         hasCollided = false;
 
-        // 1. CRITICAL FIX: Drag ke waqt collider band rakhein taake aapas me takra kar destroy na hon
-        if (col != null)
-        {
-            col.enabled = false;
-        }
+        // 1. Drag ke waqt SAARE Colliders OFF rahenge (No self-collision)
+        SetAllCollidersState(false);
 
         // 2. Physics freeze
         if (rb != null)
@@ -61,20 +66,23 @@ public class ProjectileMover : MonoBehaviour
             rb.constraints = RigidbodyConstraints.None;
         }
 
-        // 3. Flash VFX on Spawn
+        // 3. Particles reset
+        foreach (var ps in allChildParticles)
+        {
+            if (ps != null)
+            {
+                ps.Clear(true);
+                ps.Play(true);
+            }
+        }
+
+        // 4. Spawn Flash VFX
         if (flash != null)
         {
             var flashInstance = Instantiate(flash, transform.position, Quaternion.identity);
             flashInstance.transform.forward = transform.forward;
             var flashPs = flashInstance.GetComponent<ParticleSystem>();
-            if (flashPs != null)
-            {
-                Destroy(flashInstance, flashPs.main.duration);
-            }
-            else
-            {
-                Destroy(flashInstance, 1.5f);
-            }
+            Destroy(flashInstance, flashPs != null ? flashPs.main.duration : 1f);
         }
     }
 
@@ -94,11 +102,8 @@ public class ProjectileMover : MonoBehaviour
         if (isShoot) return;
         isShoot = true;
 
-        // 1. Shoot hote hi Collider aur Physics enable karein
-        if (col != null)
-        {
-            col.enabled = true;
-        }
+        // CRITICAL FIX 2: Shoot hote hi SAARE Sphere Colliders 100% ON ho jayenge
+        SetAllCollidersState(true);
 
         if (rb != null)
         {
@@ -106,9 +111,21 @@ public class ProjectileMover : MonoBehaviour
             rb.linearVelocity = transform.forward * speed;
         }
 
-        // 2. Auto-Despawn timer shuru
         if (autoDespawnRoutine != null) StopCoroutine(autoDespawnRoutine);
         autoDespawnRoutine = StartCoroutine(AutoDespawnTimer(lifeTimeAfterLaunch));
+    }
+
+    private void SetAllCollidersState(bool state)
+    {
+        if (allColliders == null) return;
+
+        for (int i = 0; i < allColliders.Length; i++)
+        {
+            if (allColliders[i] != null)
+            {
+                allColliders[i].enabled = state;
+            }
+        }
     }
 
     private IEnumerator AutoDespawnTimer(float delay)
@@ -117,32 +134,69 @@ public class ProjectileMover : MonoBehaviour
         ReturnToPool();
     }
 
-    // 3. CRITICAL FIX: Safe Collision Handling
+    // ========================================================
+    // 1. PHYSICAL / SPHERE COLLIDER COLLISION (Solid Hits)
+    // ========================================================
     void OnCollisionEnter(Collision collision)
     {
-        // Agar shoot nahi hui ya pehle se takra chuki hai to ignore karein
         if (!isShoot || hasCollided) return;
-
-        // Agar doosri knife se takraye to ignore karein (sirf enemy/wall par hit ho)
         if (collision.gameObject.GetComponent<ProjectileMover>() != null) return;
+
+        IDamageable damageable = collision.gameObject.GetComponentInParent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damageAmount, collision.contacts[0].point, transform.forward);
+            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? collision.gameObject;
+            Debug.Log($"<color=yellow>[SPHERE COLLIDER HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
+        }
 
         HandleHit(collision.contacts[0].point, collision.contacts[0].normal);
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // Agar Trigger Collider use ho raha ho
         if (!isShoot || hasCollided) return;
         if (other.gameObject.GetComponent<ProjectileMover>() != null) return;
 
+        IDamageable damageable = other.gameObject.GetComponentInParent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damageAmount, transform.position, transform.forward);
+            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? other.gameObject;
+            Debug.Log($"<color=yellow>[TRIGGER HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
+        }
+
         HandleHit(transform.position, -transform.forward);
+    }
+
+    // ========================================================
+    // 2. PARTICLE COLLISION (Particle Hits)
+    // ========================================================
+    void OnParticleCollision(GameObject other)
+    {
+        if (!isShoot || hasCollided) return;
+        if (other.GetComponent<ProjectileMover>() != null) return;
+
+        ParticleSystem ps = allChildParticles.Length > 0 ? allChildParticles[0] : null;
+        int numEvents = ps != null ? ps.GetCollisionEvents(other, collisionEvents) : 0;
+
+        Vector3 hitPoint = numEvents > 0 ? collisionEvents[0].intersection : transform.position;
+        Vector3 hitNormal = numEvents > 0 ? collisionEvents[0].normal : -transform.forward;
+
+        IDamageable damageable = other.GetComponentInParent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damageAmount, hitPoint, transform.forward);
+            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? other;
+            Debug.Log($"<color=cyan>[PARTICLE HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
+        }
+
+        HandleHit(hitPoint, hitNormal);
     }
 
     private void HandleHit(Vector3 point, Vector3 normal)
     {
         hasCollided = true;
-        SoundManager.Instance?.PlayHitSound();
-        GameManager.Instance?.TriggerLightHaptic();
 
         if (rb != null)
         {
@@ -171,22 +225,7 @@ public class ProjectileMover : MonoBehaviour
             }
 
             var hitPs = hitInstance.GetComponent<ParticleSystem>();
-            if (hitPs != null)
-            {
-                Destroy(hitInstance, hitPs.main.duration);
-            }
-            else
-            {
-                Destroy(hitInstance, 1.5f);
-            }
-        }
-
-        foreach (var detachedPrefab in Detached)
-        {
-            if (detachedPrefab != null)
-            {
-                detachedPrefab.transform.parent = null;
-            }
+            Destroy(hitInstance, hitPs != null ? hitPs.main.duration : 1.5f);
         }
 
         ReturnToPool();
@@ -201,5 +240,6 @@ public class ProjectileMover : MonoBehaviour
         }
 
         gameObject.SetActive(false);
+        OnReturnToPoolCallback?.Invoke(this);
     }
 }
