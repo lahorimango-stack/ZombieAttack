@@ -2,35 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ProjectileMover : MonoBehaviour
+public class ProjectileMover : MonoBehaviour, IHitter
 {
     [Header("--- 1. Movement & Damage ---")]
-    [Tooltip("Shoot hone ke baad aage bhaagne ki speed")]
     public float speed = 35f;
-
-    [Tooltip("Dushman ko kitna damage lagay ga")]
-    public float damageAmount = 50f;
-
-    [Tooltip("Shoot hone ke kitne seconds baad projectile automatically Destroy ho jaye")]
+    public int damageValue = 35;
+    public float impactForce = 15f;
     public float lifeTimeAfterLaunch = 3f;
     public bool isShoot = false;
 
+    public int Damage => damageValue;
+    public Vector3 Direction => transform.forward;
+    public float Force => impactForce;
 
     [Header("--- 2. VFX Settings ---")]
-    [Tooltip("Spawn hote hi jo Flash VFX chalega")]
     public GameObject flash;
-
-    [Tooltip("Takrane par jo Hit VFX spawn hoga")]
     public GameObject hit;
     public float hitOffset = 0f;
-    public bool UseFirePointRotation;
-    public Vector3 rotationOffset = Vector3.zero;
-
 
     private Rigidbody rb;
     private Collider[] allColliders;
     private ParticleSystem[] allChildParticles;
-    private List<ParticleCollisionEvent> collisionEvents = new List<ParticleCollisionEvent>();
     private bool hasCollided = false;
 
     void Awake()
@@ -40,37 +32,23 @@ public class ProjectileMover : MonoBehaviour
         allChildParticles = GetComponentsInChildren<ParticleSystem>(true);
     }
 
-    /// <summary>
-    /// Spawning ke waqt call hota hai
-    /// </summary>
     public void OnSpawned()
     {
         isShoot = false;
         hasCollided = false;
-
-        // 1. Drag ke waqt Colliders OFF (No self-collision)
         SetAllCollidersState(false);
 
-        // 2. Physics freeze
         if (rb != null)
         {
             rb.isKinematic = true;
             rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.constraints = RigidbodyConstraints.None;
         }
 
-        // 3. Particles Clean Play
         foreach (var ps in allChildParticles)
         {
-            if (ps != null)
-            {
-                ps.Clear(true);
-                ps.Play(true);
-            }
+            if (ps != null) { ps.Clear(true); ps.Play(true); }
         }
 
-        // 4. Spawn Flash VFX
         if (flash != null)
         {
             var flashInstance = Instantiate(flash, transform.position, Quaternion.identity);
@@ -88,55 +66,44 @@ public class ProjectileMover : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Finger UP hone par call hoga
-    /// </summary>
     public void Launch()
     {
         if (isShoot) return;
         isShoot = true;
-
-        // 1. Colliders ON for flight
         SetAllCollidersState(true);
 
-        // 2. Physics Unlock
         if (rb != null)
         {
             rb.isKinematic = false;
             rb.linearVelocity = transform.forward * speed;
         }
 
-        // 3. Auto Destroy timer
         Destroy(gameObject, lifeTimeAfterLaunch);
     }
 
     private void SetAllCollidersState(bool state)
     {
         if (allColliders == null) return;
-
         for (int i = 0; i < allColliders.Length; i++)
         {
-            if (allColliders[i] != null)
-            {
-                allColliders[i].enabled = state;
-            }
+            if (allColliders[i] != null) allColliders[i].enabled = state;
         }
     }
 
-    // ========================================================
-    // 1. PHYSICAL / SPHERE COLLIDER COLLISION
-    // ========================================================
     void OnCollisionEnter(Collision collision)
     {
         if (!isShoot || hasCollided) return;
         if (collision.gameObject.GetComponent<ProjectileMover>() != null) return;
 
-        IDamageable damageable = collision.gameObject.GetComponentInParent<IDamageable>();
-        if (damageable != null)
+        // 1. IHittable Check (Bone ya Root dono ko detect karega)
+        IHittable hittable = collision.gameObject.GetComponent<IHittable>();
+        if (hittable == null)
+            hittable = collision.gameObject.GetComponentInParent<IHittable>();
+
+        if (hittable != null)
         {
-            damageable.TakeDamage(damageAmount, collision.contacts[0].point, transform.forward);
-            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? collision.gameObject;
-            Debug.Log($"<color=yellow>[SPHERE COLLIDER HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
+            hittable.OnHit(this, collision.contacts[0].point);
+            Debug.Log($"<color=yellow>[PROJECTILE HIT SUCCESS]</color> Hit: {collision.gameObject.name}");
         }
 
         HandleHit(collision.contacts[0].point, collision.contacts[0].normal);
@@ -147,78 +114,32 @@ public class ProjectileMover : MonoBehaviour
         if (!isShoot || hasCollided) return;
         if (other.gameObject.GetComponent<ProjectileMover>() != null) return;
 
-        IDamageable damageable = other.gameObject.GetComponentInParent<IDamageable>();
-        if (damageable != null)
+        IHittable hittable = other.GetComponent<IHittable>();
+        if (hittable == null)
+            hittable = other.GetComponentInParent<IHittable>();
+
+        if (hittable != null)
         {
-            damageable.TakeDamage(damageAmount, transform.position, transform.forward);
-            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? other.gameObject;
-            Debug.Log($"<color=yellow>[TRIGGER HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
+            hittable.OnHit(this, transform.position);
+            Debug.Log($"<color=yellow>[PROJECTILE TRIGGER SUCCESS]</color> Hit: {other.gameObject.name}");
         }
 
         HandleHit(transform.position, -transform.forward);
     }
 
-    // ========================================================
-    // 2. PARTICLE COLLISION
-    // ========================================================
-    void OnParticleCollision(GameObject other)
-    {
-        if (!isShoot || hasCollided) return;
-        if (other.GetComponent<ProjectileMover>() != null) return;
-
-        ParticleSystem ps = allChildParticles.Length > 0 ? allChildParticles[0] : null;
-        int numEvents = ps != null ? ps.GetCollisionEvents(other, collisionEvents) : 0;
-
-        Vector3 hitPoint = numEvents > 0 ? collisionEvents[0].intersection : transform.position;
-        Vector3 hitNormal = numEvents > 0 ? collisionEvents[0].normal : -transform.forward;
-
-        IDamageable damageable = other.GetComponentInParent<IDamageable>();
-        if (damageable != null)
-        {
-            damageable.TakeDamage(damageAmount, hitPoint, transform.forward);
-            GameObject targetObj = (damageable as MonoBehaviour)?.gameObject ?? other;
-            Debug.Log($"<color=cyan>[PARTICLE HIT]</color> Enemy: <b>{targetObj.name}</b> ko <b>{damageAmount} Damage</b> mila!");
-        }
-
-        HandleHit(hitPoint, hitNormal);
-    }
-
     private void HandleHit(Vector3 point, Vector3 normal)
     {
         hasCollided = true;
-
-        if (rb != null)
-        {
-            rb.constraints = RigidbodyConstraints.FreezeAll;
-            rb.linearVelocity = Vector3.zero;
-        }
+        if (rb != null) { rb.constraints = RigidbodyConstraints.FreezeAll; rb.linearVelocity = Vector3.zero; }
         speed = 0;
 
-        Quaternion rot = Quaternion.FromToRotation(Vector3.up, normal);
-        Vector3 pos = point + normal * hitOffset;
-
-        // Hit VFX Instantiate karein
         if (hit != null)
         {
-            var hitInstance = Instantiate(hit, pos, rot);
-            if (UseFirePointRotation)
-            {
-                hitInstance.transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-            }
-            else if (rotationOffset != Vector3.zero)
-            {
-                hitInstance.transform.rotation = Quaternion.Euler(rotationOffset);
-            }
-            else
-            {
-                hitInstance.transform.LookAt(point + normal);
-            }
-
+            var hitInstance = Instantiate(hit, point + normal * hitOffset, Quaternion.LookRotation(normal));
             var hitPs = hitInstance.GetComponent<ParticleSystem>();
             Destroy(hitInstance, hitPs != null ? hitPs.main.duration : 1.5f);
         }
 
-        // DIRECT DESTROY (No Pooling)
         Destroy(gameObject);
     }
 }

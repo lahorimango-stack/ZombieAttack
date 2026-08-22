@@ -1341,8 +1341,10 @@ GameObject:
   - component: {fileID: 4450705672715861567}
   - component: {fileID: 595618697696151976}
   - component: {fileID: 6679464350432714304}
-  - component: {fileID: 5873244842512591168}
-  - component: {fileID: 2676976010190158021}
+  - component: {fileID: 4290242389800800400}
+  - component: {fileID: 8358316193418585485}
+  - component: {fileID: 5077922241751305680}
+  - component: {fileID: 9151000408532091004}
   m_Layer: 0
   m_Name: Zombir_Female
   m_TagString: Untagged
@@ -1380,7 +1382,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 31030249cda98594a88ad8a8e9c0a5d6, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
@@ -1412,7 +1414,7 @@ MonoBehaviour:
   SquashAndStretch: 0
   sideStretch: 0.15
   frontStretch: 0.2
---- !u!114 &5873244842512591168
+--- !u!114 &4290242389800800400
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1421,45 +1423,59 @@ MonoBehaviour:
   m_GameObject: {fileID: 1620179493949017979}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e9bab0b172cab444980310693f9da7b, type: 3}
+  m_Script: {fileID: 11500000, guid: 9632c73a502dcf54eb7bdc416afd2201, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NormalZombie
-  debugAlwaysRagdoll: 0
-  maxHealth: 20
-  moveSpeed: 2.5
-  hitMovementFreezeDuration: 1.5
-  hitKnockbackDistance: 1
-  knockbackDuration: 0.24
-  deathKickForce: 3
-  deathUpwardLift: 2
-  deathTorque: 3
-  damageFlashColor: {r: 1, g: 1, b: 1, a: 1}
-  flashDuration: 0.08
-  hitTriggerName: Hit
-  animator: {fileID: 0}
---- !u!136 &2676976010190158021
-CapsuleCollider:
+  m_EditorClassIdentifier: Assembly-CSharp::RagdollController
+  animator: {fileID: 595618697696151976}
+  ragdollToIgnore: []
+--- !u!114 &8358316193418585485
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1620179493949017979}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.40485287
-  m_Height: 1.740868
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.85, z: 0}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54aff239772c84e4b9a71e5bc199c920, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StandardEnemy
+  maxHealth: 30
+  ragdollController: {fileID: 4290242389800800400}
+  timeScalable: {fileID: 5077922241751305680}
+  animator: {fileID: 595618697696151976}
+  _damagePerHit: 35
+  moveSpeed: 3.5
+  hitMoveSpeed: 0.5
+  deathBackwardForce: 20
+  deathUpwardLift: 6
+--- !u!114 &5077922241751305680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1620179493949017979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03abbce1625e31e41a23e1f47e24d1e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimeScalable
+  timeGroup: 1
+  individualScale: 1
+--- !u!114 &9151000408532091004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1620179493949017979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e622ba7b2f2381f45b22ee98768ec865, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimatorTimeScaler
+  timeScalable: {fileID: 5077922241751305680}
 --- !u!1 &1740637211583145412
 GameObject:
   m_ObjectHideFlags: 0
@@ -3410,8 +3426,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.38036916, y: 0.16, z: 0.19999999}
-  m_Center: {x: -0.19, y: -1.6132584e-10, z: 0}
+  m_Size: {x: 0.4305597, y: 0.16, z: 0.2706823}
+  m_Center: {x: -0.16490369, y: -0.0000000013331464, z: 0.009396145}
 --- !u!1 &5956940459508843937
 GameObject:
   m_ObjectHideFlags: 0
