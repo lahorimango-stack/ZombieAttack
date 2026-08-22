@@ -52,7 +52,6 @@ public class WeaponFormationController : MonoBehaviour
 
     // Internal Runtime Variables
     private List<GameObject> loadedWeapons = new List<GameObject>();
-    private Dictionary<int, Queue<ProjectileMover>> poolDictionary = new Dictionary<int, Queue<ProjectileMover>>();
     private List<ProjectileMover> activeKnivesOnScreen = new List<ProjectileMover>();
 
     private Vector3 defaultCameraPos;
@@ -63,10 +62,9 @@ public class WeaponFormationController : MonoBehaviour
     private float currentZoomOffset = 0f;
     private Vector3 cameraVelocity = Vector3.zero;
     private bool isDragging = false;
-    private bool isZoomCompleted = false; // REQUIREMENT: Zoom complete hone ka check
+    private bool isZoomCompleted = false;
     private Tween zoomTween;
 
-    // Spawning Speed Timer
     private float nextAllowedSpawnTime = 0f;
 
     void Awake()
@@ -99,14 +97,6 @@ public class WeaponFormationController : MonoBehaviour
         {
             loadedWeapons.AddRange(fallbackWeaponPrefabs);
         }
-
-        for (int i = 0; i < loadedWeapons.Count; i++)
-        {
-            if (!poolDictionary.ContainsKey(i))
-            {
-                poolDictionary.Add(i, new Queue<ProjectileMover>());
-            }
-        }
     }
 
     void Update()
@@ -123,11 +113,11 @@ public class WeaponFormationController : MonoBehaviour
     {
         if (loadedWeapons.Count == 0) return;
 
-        // 1. Touch Down (Camera Zoom Out Start)
+        // 1. Touch Down
         if (Input.GetMouseButtonDown(0))
         {
             isDragging = true;
-            isZoomCompleted = false; // Zoom complete hone tak spawning band
+            isZoomCompleted = false;
             touchStartScreenPos = Input.mousePosition;
             targetPanX = 0f;
             targetPanY = 0f;
@@ -138,7 +128,6 @@ public class WeaponFormationController : MonoBehaviour
                                .SetEase(Ease.OutQuad)
                                .OnComplete(() =>
                                {
-                                   // REQUIREMENT FIX: Zoom Out complete hone ke baad hi spawn hoga
                                    if (isDragging)
                                    {
                                        isZoomCompleted = true;
@@ -147,7 +136,7 @@ public class WeaponFormationController : MonoBehaviour
                                });
         }
 
-        // 2. Dragging (Sirf tab spawn karein jab Zoom Out complete ho chuka ho)
+        // 2. Dragging
         if (Input.GetMouseButton(0) && isDragging)
         {
             Vector2 currentScreenPos = Input.mousePosition;
@@ -157,7 +146,6 @@ public class WeaponFormationController : MonoBehaviour
             float targetMaxY = dragDelta.y >= 0 ? maxUpwardPanY : maxDownwardPanY;
             targetPanY = CalculateElasticOffset(dragDelta.y, dragRange, targetMaxY);
 
-            // Sirf tab knives banegi jab Camera Zoom Out poora ho chuka ho
             if (isZoomCompleted)
             {
                 Vector3 currentWorldPos = GetWorldPosFromScreen(currentScreenPos);
@@ -185,42 +173,56 @@ public class WeaponFormationController : MonoBehaviour
         float absNorm = Mathf.Abs(normalized);
         float sign = Mathf.Sign(normalized);
 
-        if (absNorm <= 1f)
-        {
-            return normalized * maxPan;
-        }
+        if (absNorm <= 1f) return normalized * maxPan;
 
         float overDrag = absNorm - 1f;
         float elasticStretch = (1f - (1f / (overDrag * 0.5f + 1f))) * (maxPan * elasticStretchAmount);
         return sign * (maxPan + elasticStretch);
     }
 
+    /// <summary>
+    /// SIMPLE INSTANTIATE SYSTEM (No Pooling Complexity)
+    /// </summary>
     private void SpawnKnife(Vector2 screenPos)
     {
         int activeIdx = GetTargetWeaponIndex();
+        if (activeIdx < 0 || activeIdx >= loadedWeapons.Count) return;
+
         Vector3 spawnWorldPos = GetWorldPosFromScreen(screenPos);
 
-        ProjectileMover projectile = GetProjectileFromPool(activeIdx, spawnWorldPos);
+        // Direct Instantiate
+        GameObject knifeObj = Instantiate(
+            loadedWeapons[activeIdx],
+            spawnWorldPos,
+            Quaternion.LookRotation(mainCamera.transform.forward),
+            transform
+        );
 
-        if (projectile != null)
+        ProjectileMover projectile = knifeObj.GetComponent<ProjectileMover>();
+        if (projectile == null)
+            projectile = knifeObj.AddComponent<ProjectileMover>();
+
+        projectile.OnSpawned();
+
+        lastSpawnWorldPos = spawnWorldPos;
+        activeKnivesOnScreen.Add(projectile);
+
+        // Elastic Scale Pop
+        projectile.transform.localScale = Vector3.zero;
+        projectile.transform.DOScale(Vector3.one, spawnPopDuration).SetEase(Ease.OutBack);
+
+        // Audio & Haptic
+        SoundManager.Instance?.PlaySpawnSound();
+        GameManager.Instance?.TriggerLightHaptic();
+
+        // Max limit: Direct Destroy Oldest
+        if (activeKnivesOnScreen.Count > maxKnivesLimit)
         {
-            lastSpawnWorldPos = spawnWorldPos;
-            activeKnivesOnScreen.Add(projectile);
-
-            // Elastic Pop Animation
-            projectile.transform.localScale = Vector3.zero;
-            projectile.transform.DOScale(Vector3.one, spawnPopDuration).SetEase(Ease.OutBack);
-
-            // Audio & Haptic Feedback
-            SoundManager.Instance?.PlaySpawnSound();
-            GameManager.Instance?.TriggerLightHaptic();
-
-            // Max limit recycle
-            if (activeKnivesOnScreen.Count > maxKnivesLimit)
+            ProjectileMover oldest = activeKnivesOnScreen[0];
+            activeKnivesOnScreen.RemoveAt(0);
+            if (oldest != null)
             {
-                ProjectileMover oldest = activeKnivesOnScreen[0];
-                activeKnivesOnScreen.RemoveAt(0);
-                ReturnProjectileToPool(oldest);
+                Destroy(oldest.gameObject);
             }
         }
     }
@@ -274,56 +276,7 @@ public class WeaponFormationController : MonoBehaviour
                            .SetEase(Ease.OutQuad);
     }
 
-    #region Object Pooling & Dev Mode
-
-    private ProjectileMover GetProjectileFromPool(int weaponIdx, Vector3 position)
-    {
-        if (weaponIdx < 0 || weaponIdx >= loadedWeapons.Count) return null;
-
-        if (!poolDictionary.ContainsKey(weaponIdx))
-        {
-            poolDictionary.Add(weaponIdx, new Queue<ProjectileMover>());
-        }
-
-        Queue<ProjectileMover> queue = poolDictionary[weaponIdx];
-        ProjectileMover proj = null;
-
-        while (queue.Count > 0)
-        {
-            proj = queue.Dequeue();
-            if (proj != null) break;
-        }
-
-        if (proj == null)
-        {
-            GameObject obj = Instantiate(loadedWeapons[weaponIdx], transform);
-            proj = obj.GetComponent<ProjectileMover>();
-            if (proj == null)
-                proj = obj.AddComponent<ProjectileMover>();
-
-            proj.weaponIndex = weaponIdx;
-        }
-
-        proj.transform.position = position;
-        proj.transform.rotation = Quaternion.LookRotation(mainCamera.transform.forward);
-        proj.gameObject.SetActive(true);
-        proj.OnSpawned();
-
-        return proj;
-    }
-
-    private void ReturnProjectileToPool(ProjectileMover proj)
-    {
-        if (proj != null)
-        {
-            proj.transform.DOKill();
-            proj.ReturnToPool();
-            if (poolDictionary.ContainsKey(proj.weaponIndex))
-            {
-                poolDictionary[proj.weaponIndex].Enqueue(proj);
-            }
-        }
-    }
+    #region Public Weapon Switch & Dev Mode
 
     private int GetTargetWeaponIndex()
     {
@@ -341,18 +294,12 @@ public class WeaponFormationController : MonoBehaviour
             if (directLoaded != null)
             {
                 loadedWeapons.Add(directLoaded);
-                int newIdx = loadedWeapons.Count - 1;
-                poolDictionary.Add(newIdx, new Queue<ProjectileMover>());
-                return newIdx;
+                return loadedWeapons.Count - 1;
             }
         }
 
         return currentWeaponIndex;
     }
-
-    #endregion
-
-    #region Public Weapon Switch Functions
 
     public void SwitchNextWeapon()
     {
@@ -369,11 +316,15 @@ public class WeaponFormationController : MonoBehaviour
         SoundManager.Instance?.PlayButtonClick();
         GameManager.Instance?.TriggerLightHaptic();
 
+        // Screen par jo unlaunched knives theen unko direct Destroy karein
         if (activeKnivesOnScreen.Count > 0 && isDragging)
         {
             for (int i = 0; i < activeKnivesOnScreen.Count; i++)
             {
-                ReturnProjectileToPool(activeKnivesOnScreen[i]);
+                if (activeKnivesOnScreen[i] != null)
+                {
+                    Destroy(activeKnivesOnScreen[i].gameObject);
+                }
             }
             activeKnivesOnScreen.Clear();
         }

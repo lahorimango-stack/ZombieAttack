@@ -28,8 +28,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
 
     [Header("--- 4. Z-Axis Death Ragdoll Impulse ---")]
-    [Tooltip("Marte waqt Z-Axis par kitni backward force lagay (Seedha peeche urrne ke liye)")]
-    [SerializeField] protected float deathKickForce = 20f;
+    [Tooltip("Marte waqt camera se door peeche urrne ki speed")]
+    [SerializeField] protected float deathKickForce = 22f;
 
     [Tooltip("Hawa mein kitna uncha toss hoga (Upward Arc)")]
     [SerializeField] protected float deathUpwardLift = 7f;
@@ -188,8 +188,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         transform.DOPunchScale(initialScale * 0.08f, 0.12f, 1, 0.5f)
                  .OnComplete(() => transform.localScale = initialScale);
 
-        // REQUIREMENT: Strict Z-Axis Knockback
-        ApplyHitKnockback(hitDirection);
+        // Knockback strictly away from camera
+        ApplyHitKnockback();
 
         GameManager.Instance?.TriggerLightHaptic();
         SoundManager.Instance?.PlayHitSound();
@@ -205,16 +205,14 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     }
 
     /// <summary>
-    /// REQUIREMENT: Force hamesha seedha Z-Axis par lagegi (No sideways drift)
+    /// GUARANTEED FIX: Dhakka hamesha camera se door (+Z) lagega
     /// </summary>
-    private void ApplyHitKnockback(Vector3 hitDirection)
+    private void ApplyHitKnockback()
     {
-        // Z-Direction check (Hamesha seedha Z+ ya Z- par push hoga)
-        float zSign = hitDirection.z >= 0 ? 1f : -1f;
-        Vector3 pushDir = new Vector3(0f, 0f, zSign);
+        Vector3 pushDir = Vector3.forward; // Strict world +Z (Away from camera)
 
         Vector3 targetPushPos = transform.position + (pushDir * hitKnockbackDistance);
-        targetPushPos.y = groundFixedY; // Ground protection
+        targetPushPos.y = groundFixedY;
 
         knockbackTween?.Kill();
         knockbackTween = transform.DOMove(targetPushPos, knockbackDuration).SetEase(Ease.OutQuad);
@@ -229,11 +227,14 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     }
 
     /// <summary>
-    /// REQUIREMENT: Death Force Strictly Z-Axis Backward + Y-Axis Lift
+    /// GUARANTEED FIX: Death Force hamesha 100% Camera se door (+Z) lagegi
     /// </summary>
     protected virtual void Die(Vector3 hitPoint, Vector3 hitDirection)
     {
         isDead = true;
+
+        // LEVEL MANAGER KO NOTIFY KAREIN (Kill Track)
+        LevelManager.Instance?.OnEnemyKilled(gameObject);
 
         knockbackTween?.Kill();
         transform.DOKill();
@@ -242,18 +243,17 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         GameManager.Instance?.TriggerHeavyHaptic();
         SetRagdollState(true);
 
-        // Z-Axis strict flight calculation (X = 0 taake left/right na jaye)
-        float zSign = hitDirection.z >= 0 ? 1f : -1f;
-        Vector3 zLaunchVelocity = new Vector3(0f, deathUpwardLift, zSign * deathKickForce);
+        // Direction strictly locked: Away from camera (+Z) and Upward (+Y)
+        // Camera ki taraf aane ka 0% chance
+        Vector3 zLaunchVelocity = new Vector3(0f, deathUpwardLift, Mathf.Abs(deathKickForce));
 
-        // Saare ragdoll bones par Z-Axis velocity apply karein
         if (ragdollRigidbodies != null)
         {
             foreach (var rb in ragdollRigidbodies)
             {
                 if (rb != null && rb.gameObject != this.gameObject)
                 {
-                    rb.linearVelocity = zLaunchVelocity; // Seedha Z par launch
+                    rb.linearVelocity = zLaunchVelocity; // Unified airborne launch in +Z
                     rb.angularVelocity = Random.insideUnitSphere * deathTorque;
                 }
             }

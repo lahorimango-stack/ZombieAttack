@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ public class ProjectileMover : MonoBehaviour
     [Tooltip("Dushman ko kitna damage lagay ga")]
     public float damageAmount = 50f;
 
-    [Tooltip("Shoot hone ke kitne seconds baad despawn ho kar pool mein wapis jaye")]
+    [Tooltip("Shoot hone ke kitne seconds baad projectile automatically Destroy ho jaye")]
     public float lifeTimeAfterLaunch = 3f;
     public bool isShoot = false;
 
@@ -28,33 +27,28 @@ public class ProjectileMover : MonoBehaviour
     public Vector3 rotationOffset = Vector3.zero;
 
 
-    [HideInInspector] public int weaponIndex = 0;
-    public Action<ProjectileMover> OnReturnToPoolCallback;
-
     private Rigidbody rb;
-    private Collider[] allColliders; // Root + Child saare Sphere/Box colliders
+    private Collider[] allColliders;
     private ParticleSystem[] allChildParticles;
     private List<ParticleCollisionEvent> collisionEvents = new List<ParticleCollisionEvent>();
     private bool hasCollided = false;
-    private Coroutine autoDespawnRoutine;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        // CRITICAL FIX 1: Saare child colliders (Sphere, Box, Capsule) dhoond lein
         allColliders = GetComponentsInChildren<Collider>(true);
         allChildParticles = GetComponentsInChildren<ParticleSystem>(true);
     }
 
     /// <summary>
-    /// Pool se nikalte waqt call hota hai
+    /// Spawning ke waqt call hota hai
     /// </summary>
     public void OnSpawned()
     {
         isShoot = false;
         hasCollided = false;
 
-        // 1. Drag ke waqt SAARE Colliders OFF rahenge (No self-collision)
+        // 1. Drag ke waqt Colliders OFF (No self-collision)
         SetAllCollidersState(false);
 
         // 2. Physics freeze
@@ -66,7 +60,7 @@ public class ProjectileMover : MonoBehaviour
             rb.constraints = RigidbodyConstraints.None;
         }
 
-        // 3. Particles reset
+        // 3. Particles Clean Play
         foreach (var ps in allChildParticles)
         {
             if (ps != null)
@@ -102,17 +96,18 @@ public class ProjectileMover : MonoBehaviour
         if (isShoot) return;
         isShoot = true;
 
-        // CRITICAL FIX 2: Shoot hote hi SAARE Sphere Colliders 100% ON ho jayenge
+        // 1. Colliders ON for flight
         SetAllCollidersState(true);
 
+        // 2. Physics Unlock
         if (rb != null)
         {
             rb.isKinematic = false;
             rb.linearVelocity = transform.forward * speed;
         }
 
-        if (autoDespawnRoutine != null) StopCoroutine(autoDespawnRoutine);
-        autoDespawnRoutine = StartCoroutine(AutoDespawnTimer(lifeTimeAfterLaunch));
+        // 3. Auto Destroy timer
+        Destroy(gameObject, lifeTimeAfterLaunch);
     }
 
     private void SetAllCollidersState(bool state)
@@ -128,14 +123,8 @@ public class ProjectileMover : MonoBehaviour
         }
     }
 
-    private IEnumerator AutoDespawnTimer(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        ReturnToPool();
-    }
-
     // ========================================================
-    // 1. PHYSICAL / SPHERE COLLIDER COLLISION (Solid Hits)
+    // 1. PHYSICAL / SPHERE COLLIDER COLLISION
     // ========================================================
     void OnCollisionEnter(Collision collision)
     {
@@ -170,7 +159,7 @@ public class ProjectileMover : MonoBehaviour
     }
 
     // ========================================================
-    // 2. PARTICLE COLLISION (Particle Hits)
+    // 2. PARTICLE COLLISION
     // ========================================================
     void OnParticleCollision(GameObject other)
     {
@@ -208,6 +197,7 @@ public class ProjectileMover : MonoBehaviour
         Quaternion rot = Quaternion.FromToRotation(Vector3.up, normal);
         Vector3 pos = point + normal * hitOffset;
 
+        // Hit VFX Instantiate karein
         if (hit != null)
         {
             var hitInstance = Instantiate(hit, pos, rot);
@@ -228,18 +218,7 @@ public class ProjectileMover : MonoBehaviour
             Destroy(hitInstance, hitPs != null ? hitPs.main.duration : 1.5f);
         }
 
-        ReturnToPool();
-    }
-
-    public void ReturnToPool()
-    {
-        if (autoDespawnRoutine != null)
-        {
-            StopCoroutine(autoDespawnRoutine);
-            autoDespawnRoutine = null;
-        }
-
-        gameObject.SetActive(false);
-        OnReturnToPoolCallback?.Invoke(this);
+        // DIRECT DESTROY (No Pooling)
+        Destroy(gameObject);
     }
 }
