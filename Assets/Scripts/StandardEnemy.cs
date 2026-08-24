@@ -9,6 +9,11 @@ public class StandardEnemy : HumanoidEnemy
     [SerializeField] protected float moveSpeed = 3.5f;
     [SerializeField] protected float hitMoveSpeed = 4f;
 
+    [Header("--- Hit Effect Settings ---")]
+    [SerializeField] protected float knockbackForce = 5f;
+    [SerializeField] protected float knockbackDuration = 0.6f;
+    [SerializeField] protected float hitRecoveryDelay = 0.3f;
+
     [Header("--- Death Force Settings ---")]
     [SerializeField] protected float deathBackwardForce = 20f;
     [SerializeField] protected float deathUpwardLift = 6f;
@@ -16,6 +21,8 @@ public class StandardEnemy : HumanoidEnemy
     protected override int DamagePerHit => _damagePerHit;
 
     protected bool damageEffectPlaying = false;
+    protected bool isKnockedBack = false;
+    protected float knockbackTimer = 0f;
     protected Coroutine damageEffect;
     protected float speedMultiplier = 1f;
 
@@ -23,19 +30,34 @@ public class StandardEnemy : HumanoidEnemy
     {
         base.Awake();
         if (animator == null) animator = GetComponent<Animator>();
+
+
+
     }
 
     protected override void Update()
     {
         float dt = timeScalable != null ? timeScalable.DeltaTime : Time.deltaTime;
 
-        if (!IsDead && !damageEffectPlaying)
+        // Handle knockback movement
+        if (isKnockedBack && !IsDead)
+        {
+            knockbackTimer -= dt;
+            if (knockbackTimer > 0)
+            {
+                float knockbackProgress = 1f - (knockbackTimer / knockbackDuration);
+                float easeOut = 1f - (knockbackProgress * knockbackProgress); // Ease out effect
+                transform.position -= transform.forward * knockbackForce * easeOut * dt;
+            }
+            else
+            {
+                isKnockedBack = false;
+            }
+        }
+        // Normal movement - stop during damage effect
+        else if (!IsDead && !damageEffectPlaying)
         {
             transform.position += transform.forward * moveSpeed * speedMultiplier * dt;
-        }
-        else if (!IsDead && damageEffectPlaying)
-        {
-            transform.position -= transform.forward * hitMoveSpeed * dt;
         }
 
         base.Update();
@@ -88,6 +110,8 @@ public class StandardEnemy : HumanoidEnemy
     protected IEnumerator DamageEffect()
     {
         damageEffectPlaying = true;
+        isKnockedBack = true;
+        knockbackTimer = knockbackDuration;
 
         if (animator != null && animator.enabled)
         {
@@ -99,6 +123,9 @@ public class StandardEnemy : HumanoidEnemy
             yield return new WaitForSeconds(0.15f);
         }
 
+        // Additional recovery delay before resuming normal movement
+        yield return new WaitForSeconds(hitRecoveryDelay);
+
         damageEffectPlaying = false;
     }
 
@@ -107,5 +134,7 @@ public class StandardEnemy : HumanoidEnemy
         base.OnSpawn();
         speedMultiplier = 1f;
         damageEffectPlaying = false;
+        isKnockedBack = false;
+        knockbackTimer = 0f;
     }
 }

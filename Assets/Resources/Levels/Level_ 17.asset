@@ -10,27 +10,47 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 99c89b06e7582c54f85fe01988a57728, type: 3}
-  m_Name: Level_3
+  m_Name: Level_ 17
   m_EditorClassIdentifier: Assembly-CSharp::LevelDataSO
-  levelName: Level 3
+  levelName: Level 1
   waves:
   - waveName: Wave_1
     delayBeforeWave: 0
-    enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
-    enemyCount: 10
-    spawnInterval: 1
+    enemyPrefab: {fileID: 2134122151732208974, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
+    enemyCount: 5
+    spawnInterval: 1.4
     pattern: 2
-    laneWidth: 6
-    spacing: 1.4
+    laneWidth: 3
+    spacing: 1.65
     gridColumns: 3
     customOffsets: []
   - waveName: Wave_1
     delayBeforeWave: 0
     enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
-    enemyCount: 15
-    spawnInterval: 1
-    pattern: 3
-    laneWidth: 5
-    spacing: 1.2
+    enemyCount: 5
+    spawnInterval: 1.4
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
+    gridColumns: 3
+    customOffsets: []
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
+    enemyCount: 5
+    spawnInterval: 1.4
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
+    gridColumns: 3
+    customOffsets: []
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    enemyPrefab: {fileID: 2134122151732208974, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
+    enemyCount: 5
+    spawnInterval: 1.4
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
     gridColumns: 3
     customOffsets: []

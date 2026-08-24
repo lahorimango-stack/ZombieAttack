@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c89b06e7582c54f85fe01988a57728, type: 3}
+  m_Name: Level_ 3
+  m_EditorClassIdentifier: Assembly-CSharp::LevelDataSO
+  levelName: Level 1
+  waves:
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    enemyPrefab: {fileID: 2134122151732208974, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
+    enemyCount: 8
+    spawnInterval: 1.4
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
+    gridColumns: 3
+    customOffsets: []
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
+    enemyCount: 3
+    spawnInterval: 1.4
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
+    gridColumns: 3
+    customOffsets: []
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
+    enemyCount: 10
+    spawnInterval: 1
+    pattern: 2
+    laneWidth: 3
+    spacing: 1.65
+    gridColumns: 3
+    customOffsets: []

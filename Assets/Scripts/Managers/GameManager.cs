@@ -25,6 +25,7 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        Application.targetFrameRate = 60;
     }
 
     #region Haptic Trigger Methods
