@@ -1137,11 +1137,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StandardEnemy
   maxHealth: 80
-  ragdollController: {fileID: 0}
-  timeScalable: {fileID: 0}
-  animator: {fileID: 0}
+  ragdollController: {fileID: 5727610224347431513}
+  timeScalable: {fileID: 3491314479346660696}
+  animator: {fileID: 6598266714744143543}
   _damagePerHit: 35
-  moveSpeed: 2
+  moveSpeed: 0.5
   hitMoveSpeed: 3
   knockbackForce: 2.5
   knockbackDuration: 1.5

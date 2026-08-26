@@ -1445,7 +1445,7 @@ MonoBehaviour:
   timeScalable: {fileID: 5077922241751305680}
   animator: {fileID: 595618697696151976}
   _damagePerHit: 35
-  moveSpeed: 1.8
+  moveSpeed: 0.6
   hitMoveSpeed: 3
   knockbackForce: 2.5
   knockbackDuration: 1.5
