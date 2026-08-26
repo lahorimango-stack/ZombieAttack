@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: a50c20d0cc3154421b73e9840078f435, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -2056,33 +2056,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 816333611}
   m_CullTransparentMesh: 1
---- !u!114 &831991535 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5077922241751305680, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
-  m_PrefabInstance: {fileID: 304577726924064861}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 03abbce1625e31e41a23e1f47e24d1e1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TimeScalable
---- !u!114 &831991537 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4290242389800800400, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
-  m_PrefabInstance: {fileID: 304577726924064861}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9632c73a502dcf54eb7bdc416afd2201, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RagdollController
---- !u!95 &831991539 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 595618697696151976, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
-  m_PrefabInstance: {fileID: 304577726924064861}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &842091273
 GameObject:
   m_ObjectHideFlags: 0
@@ -2483,10 +2456,10 @@ MonoBehaviour:
   spawnDepthFromCamera: 2.3
   spawnInterval: 0.05
   minDistanceBetweenKnives: 0.2
-  maxKnivesLimit: 25
+  maxKnivesLimit: 30
   spawnPopDuration: 0.22
   mainCamera: {fileID: 2033385267}
-  panSmoothTime: 0.2
+  panSmoothTime: 0.25
   dragRange: 250
   maxPanX: 2.5
   maxUpwardPanY: 2
@@ -4254,7 +4227,7 @@ Camera:
   m_GameObject: {fileID: 2033385265}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -4445,18 +4418,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8601703438513673710, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
-      propertyPath: animator
-      value: 
-      objectReference: {fileID: 831991539}
-    - target: {fileID: 8601703438513673710, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
-      propertyPath: timeScalable
-      value: 
-      objectReference: {fileID: 831991535}
-    - target: {fileID: 8601703438513673710, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
-      propertyPath: ragdollController
-      value: 
-      objectReference: {fileID: 831991537}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

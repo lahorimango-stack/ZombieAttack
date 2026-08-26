@@ -21,6 +21,6 @@ MonoBehaviour:
     spawnInterval: 1.4
     pattern: 2
     laneWidth: 3
-    spacing: 1.65
+    spacing: 1
     gridColumns: 3
     customOffsets: []

@@ -253,10 +253,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.08
-  m_Height: 0.39678654
+  m_Radius: 0.09654031
+  m_Height: 0.39678657
   m_Direction: 0
-  m_Center: {x: 0.19839327, y: 0.000000074505806, z: -0.000000044703484}
+  m_Center: {x: 0.19839317, y: 0.00000007107758, z: -0.01654036}
 --- !u!1 &120412028775283748
 GameObject:
   m_ObjectHideFlags: 0
@@ -1081,7 +1081,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0.43405, y: 0.013, z: 15.75}
-  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
+  m_LocalScale: {x: 1.1, y: 1.1, z: 1.1}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 5062711805194040127}
@@ -1146,8 +1146,8 @@ MonoBehaviour:
   knockbackForce: 2.5
   knockbackDuration: 1.5
   hitRecoveryDelay: 1.5
-  deathBackwardForce: 30
-  deathUpwardLift: 12
+  deathBackwardForce: 40
+  deathUpwardLift: 20
 --- !u!114 &3491314479346660696
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1498,6 +1498,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4073141201180590538}
+  - component: {fileID: 4004059553631143802}
   m_Layer: 0
   m_Name: Ankle_R
   m_TagString: Untagged
@@ -1521,6 +1522,27 @@ Transform:
   - {fileID: 4087029450846417837}
   m_Father: {fileID: 1125774688277881953}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4004059553631143802
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3364817568687338591}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1651253, y: 0.25009662, z: 0.13796705}
+  m_Center: {x: 0, y: 0.08, z: 0}
 --- !u!1 &3385742388876512305
 GameObject:
   m_ObjectHideFlags: 0
@@ -2579,7 +2601,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.08
+  m_Radius: 0.09654031
   m_Height: 0.39678645
   m_Direction: 0
   m_Center: {x: -0.19839323, y: -0.00000007759081, z: -0.000000026077032}
@@ -3421,6 +3443,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1269108198030929643}
+  - component: {fileID: 3329938467320895757}
   m_Layer: 0
   m_Name: Ankle_L
   m_TagString: Untagged
@@ -3444,6 +3467,27 @@ Transform:
   - {fileID: 1655021853081446808}
   m_Father: {fileID: 3529330993615646966}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3329938467320895757
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8489876652113636984}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1651253, y: 0.25009662, z: 0.13796705}
+  m_Center: {x: 0, y: -0.13, z: 0.03}
 --- !u!1 &8603789892152359686
 GameObject:
   m_ObjectHideFlags: 0
