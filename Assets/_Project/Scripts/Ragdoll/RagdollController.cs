@@ -1,112 +1,106 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RagdollController : MonoBehaviour
 {
+    [Header("--- Bone References ---")]
     [SerializeField] private Animator animator;
-    [SerializeField] private RagdollController[] ragdollToIgnore = new RagdollController[0];
+    [SerializeField] private Rigidbody mainHipsRigidbody;
 
-    private RagdollBodyPart[] bodyParts;
-    public Action<RagdollBodyPart> OnGetHit;
+    private List<Rigidbody> ragdollBones = new List<Rigidbody>();
+    private List<Collider> ragdollColliders = new List<Collider>();
+    private bool isRagdollActive = false;
 
     private void Awake()
     {
         if (animator == null)
             animator = GetComponent<Animator>();
 
-        // AUTO-ATTACH: Saare child bones jinpe Rigidbody hai unpe RagdollBodyPart khud lagayein
-        Rigidbody[] childRbs = GetComponentsInChildren<Rigidbody>();
-        foreach (var rb in childRbs)
+        SetupRagdoll();
+    }
+
+    public void SetupRagdoll()
+    {
+        ragdollBones.Clear();
+        ragdollColliders.Clear();
+
+        Rigidbody[] rbs = GetComponentsInChildren<Rigidbody>();
+        Collider[] cols = GetComponentsInChildren<Collider>();
+
+        foreach (var rb in rbs)
         {
             if (rb.gameObject != this.gameObject)
             {
-                if (rb.GetComponent<RagdollBodyPart>() == null)
+                ragdollBones.Add(rb);
+
+                if (mainHipsRigidbody == null && (rb.name.ToLower().Contains("hip") || rb.name.ToLower().Contains("pelvis") || rb.name.ToLower().Contains("spine")))
                 {
-                    rb.gameObject.AddComponent<RagdollBodyPart>();
+                    mainHipsRigidbody = rb;
                 }
             }
         }
 
-        bodyParts = GetComponentsInChildren<RagdollBodyPart>();
-
-        foreach (var part in bodyParts)
+        foreach (var c in cols)
         {
-            part.OnGetHit += OnBodyPartGetHit;
-            part.Init(this);
-            part.CacheInitialLocalPose();
-        }
-    }
-
-    private void Start()
-    {
-        // NULL CHECK FIX: Agar empty ho to crash na ho
-        if (ragdollToIgnore != null)
-        {
-            foreach (var ragdoll in ragdollToIgnore)
+            if (c.gameObject != this.gameObject)
             {
-                if (ragdoll != null)
-                    IgnoreCollision(ragdoll);
+                ragdollColliders.Add(c);
             }
         }
 
-        ResetForSpawn();
+        DeactivateRagdoll();
     }
-
-    public void ResetForSpawn()
-    {
-        if (bodyParts == null) return;
-
-        foreach (var part in bodyParts)
-        {
-            part.DeactivateRagdoll();
-            part.RestoreInitialLocalPose();
-        }
-
-        if (animator != null)
-        {
-            animator.enabled = true;
-            animator.Rebind();
-            animator.Update(0f);
-        }
-    }
-
-    private void OnBodyPartGetHit(RagdollBodyPart part) => OnGetHit?.Invoke(part);
 
     public void ActivateRagdoll()
     {
-        if (animator != null) animator.enabled = false;
-        if (bodyParts == null) return;
+        isRagdollActive = true;
 
-        foreach (var part in bodyParts)
+        if (animator != null)
+            animator.enabled = false;
+
+        foreach (var rb in ragdollBones)
         {
-            part.ActivateRagdoll();
+            if (rb != null)
+                rb.isKinematic = false;
+        }
+
+        foreach (var col in ragdollColliders)
+        {
+            if (col != null)
+                col.enabled = true;
         }
     }
 
-    public void ApplyRagdollForce(Vector3 force)
+    public void DeactivateRagdoll()
     {
-        if (bodyParts == null) return;
-        foreach (var part in bodyParts)
+        isRagdollActive = false;
+
+        foreach (var rb in ragdollBones)
         {
-            part.ApplyForce(force);
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
         }
+
+        if (animator != null)
+            animator.enabled = true;
     }
 
-    private void IgnoreCollision(RagdollController ragdoll)
+    /// <summary>
+    /// Z-Axis Launch Velocity across bones
+    /// </summary>
+    public void ApplyRagdollForce(Vector3 launchVelocity)
     {
-        Collider[] other = ragdoll.GetAllColliders();
-        Collider[] my = GetAllColliders();
-        for (int i = 0; i < other.Length; i++)
-            for (int j = 0; j < my.Length; j++)
-                Physics.IgnoreCollision(other[i], my[j]);
-    }
-
-    public Collider[] GetAllColliders()
-    {
-        if (bodyParts == null) return new Collider[0];
-        var colliders = new Collider[bodyParts.Length];
-        for (int i = 0; i < bodyParts.Length; i++)
-            colliders[i] = bodyParts[i].Collider;
-        return colliders;
+        foreach (var rb in ragdollBones)
+        {
+            if (rb != null)
+            {
+                rb.linearVelocity = launchVelocity;
+                rb.angularVelocity = Random.insideUnitSphere * 5f;
+            }
+        }
     }
 }

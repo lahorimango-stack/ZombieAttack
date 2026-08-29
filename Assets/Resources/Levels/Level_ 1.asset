@@ -13,14 +13,23 @@ MonoBehaviour:
   m_Name: Level_ 1
   m_EditorClassIdentifier: Assembly-CSharp::LevelDataSO
   levelName: Level 1
+  minMoveX: -3.5
+  maxMoveX: 3.5
   waves:
   - waveName: Wave_1
     delayBeforeWave: 0
-    enemyPrefab: {fileID: 2134122151732208974, guid: 975499f74dd50f444a8e0f8c6ae92f57, type: 3}
-    enemyCount: 5
-    spawnInterval: 1.4
-    pattern: 2
-    laneWidth: 3
-    spacing: 1
-    gridColumns: 3
-    customOffsets: []
+    waveClearPercentage: 0.8
+    enemyPacks:
+    - enemyPrefab: {fileID: 1620179493949017979, guid: 70b84c4bc83db22479f2c6931393d29e, type: 3}
+      count: 11
+      clusterSpread: 50
+    - enemyPrefab: {fileID: 4113768384130672149, guid: 9e44706acc9df4f42b12704183a9e5e3, type: 3}
+      count: 11
+      clusterSpread: 100
+  - waveName: Wave_1
+    delayBeforeWave: 0
+    waveClearPercentage: 0.8
+    enemyPacks:
+    - enemyPrefab: {fileID: 4113768384130672149, guid: 9e44706acc9df4f42b12704183a9e5e3, type: 3}
+      count: 50
+      clusterSpread: 60

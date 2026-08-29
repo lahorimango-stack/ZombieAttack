@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 54026867493614958}
   - component: {fileID: 135840973497244662}
   - component: {fileID: -4273242958953894642}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile 26
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4845,15 +4845,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 20
-  damageAmount: 7
+  damageValue: 35
+  impactForce: 15
   lifeTimeAfterLaunch: 3
   isShoot: 0
   flash: {fileID: 1447684947834178, guid: 25f0a817a944f794d8af1e1ea326f16c, type: 3}
   hit: {fileID: 1320316104850776, guid: 1977fc844cb969a44866c4dcd32996d1, type: 3}
   hitOffset: 0.1
-  UseFirePointRotation: 0
-  rotationOffset: {x: 0, y: 0, z: 0}
-  weaponIndex: 0
 --- !u!199 &199085376630515598
 ParticleSystemRenderer:
   serializedVersion: 7
@@ -5074,7 +5072,7 @@ GameObject:
   - component: {fileID: 4915149813840288}
   - component: {fileID: 198359807666768676}
   - component: {fileID: 199869365633251996}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Glow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9932,7 +9930,7 @@ GameObject:
   - component: {fileID: 198987202803310668}
   - component: {fileID: 114581319243590972}
   - component: {fileID: 199574509586546038}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Wind
   m_TagString: Untagged
   m_Icon: {fileID: 0}

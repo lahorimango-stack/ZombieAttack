@@ -4,7 +4,7 @@ public class FailTrigger : MonoBehaviour
 {
     private void OnTriggerEnter(Collider other)
     {
-        // Naye System ke mutabiq check
+        // Check karein kya takrane wala zinda HumanoidEnemy hai
         HumanoidEnemy enemy = other.GetComponentInParent<HumanoidEnemy>();
         if (enemy != null && !enemy.IsDead)
         {

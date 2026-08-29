@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4587943912328828}
   - component: {fileID: 198840703474818392}
   - component: {fileID: 199652021892514146}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Smoke
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4859,7 +4859,7 @@ GameObject:
   - component: {fileID: 4928152590134744}
   - component: {fileID: 198598355560077112}
   - component: {fileID: 199934617267810200}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Hearts
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9721,7 +9721,7 @@ GameObject:
   - component: {fileID: 135350336402146296}
   - component: {fileID: 54933371835274920}
   - component: {fileID: 4590826771341623606}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile 27
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14699,16 +14699,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 10
+  damageValue: 35
+  impactForce: 15
   lifeTimeAfterLaunch: 3
   isShoot: 0
   flash: {fileID: 1292704331029830, guid: 28538e5931854494fbe4d98d2d4cd548, type: 3}
   hit: {fileID: 1402743518298044, guid: 6220b0bbd4630c24a9d0fd570b53d326, type: 3}
   hitOffset: 0.1
-  UseFirePointRotation: 0
-  rotationOffset: {x: 0, y: 0, z: 0}
-  Detached:
-  - {fileID: 0}
-  weaponIndex: 0
 --- !u!135 &135350336402146296
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -14783,7 +14780,7 @@ GameObject:
   - component: {fileID: 4847197780967490}
   - component: {fileID: 198104141697905822}
   - component: {fileID: 199915741868203060}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Trail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19690,7 +19687,7 @@ GameObject:
   - component: {fileID: 4356259679726644}
   - component: {fileID: 198082910738639804}
   - component: {fileID: 199327357237797786}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Flares
   m_TagString: Untagged
   m_Icon: {fileID: 0}

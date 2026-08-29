@@ -1,58 +1,61 @@
-using System;
 using UnityEngine;
 
-public abstract class HumanoidEnemy : MonoBehaviour, IHittable
+[RequireComponent(typeof(RagdollController), typeof(AudioSource))]
+public abstract class HumanoidEnemy : MonoBehaviour, IDamageable
 {
-    [Header("--- Health & Defense ---")]
+    [Header("--- Base Health ---")]
     [SerializeField] protected int maxHealth = 100;
     public int Health { get; protected set; }
-
-    [Header("--- References ---")]
-    [SerializeField] protected RagdollController ragdollController;
-    [SerializeField] protected TimeScalable timeScalable;
-
     public bool IsDead => Health <= 0;
-    protected abstract int DamagePerHit { get; }
 
-    public event Action<IHittable> OnDespawn;
+    protected abstract int DamagePerHit { get; }
+    protected RagdollController ragdollController;
+    protected Collider mainRootCollider;
+    protected AudioSource audioSource;
+
+    [HideInInspector] public float minX = -3.5f;
+    [HideInInspector] public float maxX = 3.5f;
 
     protected virtual void Awake()
     {
         Health = maxHealth;
+        ragdollController = GetComponent<RagdollController>();
+        mainRootCollider = GetComponent<Collider>();
+        audioSource = GetComponent<AudioSource>();
 
-        if (ragdollController == null)
-            ragdollController = GetComponent<RagdollController>();
-
-        if (timeScalable == null)
-            timeScalable = GetComponent<TimeScalable>();
-
-        if (ragdollController != null)
+        if (audioSource != null)
         {
-            ragdollController.OnGetHit += (part) => OnGetHit();
+            audioSource.spatialBlend = 1f;
+            audioSource.playOnAwake = false;
         }
     }
 
-    // FIX: virtual Update method taake StandardEnemy isay override kar sake
     protected virtual void Update()
     {
-    }
-
-    public virtual void OnHit(IHitter hitter, Vector3 position)
-    {
-        if (IsDead) return;
-        OnGetHit();
-    }
-
-    protected virtual void OnGetHit()
-    {
+        // Handled in child
     }
 
     public virtual void OnSpawn()
     {
         Health = maxHealth;
         if (ragdollController != null)
-        {
-            ragdollController.ResetForSpawn();
-        }
+            ragdollController.DeactivateRagdoll();
+
+        if (mainRootCollider != null)
+            mainRootCollider.enabled = true;
+    }
+
+    protected virtual void OnGetHit()
+    {
+        // Handled in child
+    }
+
+    /// <summary>
+    /// Universal Damage Hook for Knife collisions
+    /// </summary>
+    public virtual void TakeDamage(float damageAmount, Vector3 hitPoint, Vector3 hitDirection)
+    {
+        if (IsDead) return;
+        OnGetHit();
     }
 }

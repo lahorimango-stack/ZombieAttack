@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 198343067639323108}
   - component: {fileID: 114801155035620022}
   - component: {fileID: 199632313697423724}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sparks
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4886,7 +4886,7 @@ GameObject:
   - component: {fileID: 54320897707685700}
   - component: {fileID: 135810886318251054}
   - component: {fileID: -1550495306998763920}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile 9
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9716,16 +9716,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 10
+  damageValue: 35
+  impactForce: 15
   lifeTimeAfterLaunch: 3
   isShoot: 0
   flash: {fileID: 1367524815892938, guid: 40f5e004d2504a04db181f5453658776, type: 3}
   hit: {fileID: 1089465354904564, guid: f0855940e22dbcd4aad5ca152a089348, type: 3}
   hitOffset: 0.1
-  UseFirePointRotation: 0
-  rotationOffset: {x: 0, y: 0, z: 0}
-  Detached:
-  - {fileID: 1182339972675718}
-  weaponIndex: 0
 --- !u!199 &199496378200092506
 ParticleSystemRenderer:
   serializedVersion: 7
@@ -9946,7 +9943,7 @@ GameObject:
   - component: {fileID: 4158040155400464}
   - component: {fileID: 198789236737275484}
   - component: {fileID: 199918811470479684}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Core
   m_TagString: Untagged
   m_Icon: {fileID: 0}

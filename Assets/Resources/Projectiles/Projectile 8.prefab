@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 114194830351093922}
   - component: {fileID: 136001570826098454}
   - component: {fileID: 4106939009838804517}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile 8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4951,15 +4951,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 25
+  damageValue: 35
+  impactForce: 15
   lifeTimeAfterLaunch: 3
   isShoot: 0
   flash: {fileID: 0}
   hit: {fileID: 1105495686751570, guid: 4328596502e67c1468c5794bdd5067b4, type: 3}
   hitOffset: 0.05
-  UseFirePointRotation: 1
-  rotationOffset: {x: 0, y: 0, z: 0}
-  Detached: []
-  weaponIndex: 0
 --- !u!136 &136001570826098454
 CapsuleCollider:
   m_ObjectHideFlags: 0
