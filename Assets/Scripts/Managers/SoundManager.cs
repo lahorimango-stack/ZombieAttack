@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 public class SoundManager : MonoBehaviour
 {
@@ -22,12 +24,33 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private AudioClip buttonClickSound;
     [SerializeField] private AudioClip levelWinSound;
     [SerializeField] private AudioClip levelFailSound;
+    [SerializeField] private AudioClip coinSound;
+    [SerializeField] private AudioClip panelOpenSound;
+    [SerializeField] private AudioClip waveStartSound;
+    [SerializeField] private AudioClip finalWaveSound;
+    [SerializeField] private AudioClip unlockSound;
+
+    [Header("--- Music & Ambience ---")]
+    [SerializeField] private AudioClip menuMusic;
+    [SerializeField] private AudioClip gameplayMusic;
+    [SerializeField] private AudioClip bossMusic;
+    [SerializeField] private float musicFadeTime = 0.8f;
+    [Tooltip("Hamesha chalne wala mahaul (baarish) - music ke neeche")]
+    [SerializeField] private AudioSource ambienceSource;
+    [SerializeField] private AudioClip ambienceClip;
+    [Range(0f, 1f)][SerializeField] private float ambienceVolume = 0.35f;
 
     [Header("--- Audio Settings ---")]
     [Range(0f, 1f)] public float sfxVolume = 1f;
     [Range(0f, 1f)] public float musicVolume = 0.6f;
     public bool isSfxMuted = false;
     public bool isMusicMuted = false;
+
+    [Tooltip("Ek hi sound group ko is se jaldi dobara na bajaye (spam control)")]
+    [SerializeField] private float sameSoundMinGap = 0.045f;
+
+    private readonly Dictionary<int, float> lastPlayTime = new Dictionary<int, float>();
+    private Tween musicFade;
 
     private void Awake()
     {
@@ -38,6 +61,7 @@ public class SoundManager : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             InitializeAudioSources();
             LoadAudioSettings();
+            StartAmbience();
         }
         else
         {
@@ -77,7 +101,7 @@ public class SoundManager : MonoBehaviour
     /// </summary>
     public void PlaySpawnSound()
     {
-        PlaySFX(knifeSpawnSound, 0.9f, 1.15f);
+        PlaySFX(knifeSpawnSound, 0.9f, 1.15f, 0.5f);
     }
 
     /// <summary>
@@ -93,15 +117,41 @@ public class SoundManager : MonoBehaviour
         PlaySFX(buttonClickSound);
     }
 
+    public void PlayPanelOpen()
+    {
+        PlaySFX(panelOpenSound);
+    }
+
+    public void PlayCoin()
+    {
+        PlaySFX(coinSound, 0.95f, 1.15f, 0.6f);
+    }
+
+    public void PlayUnlock()
+    {
+        PlaySFX(unlockSound);
+    }
+
+    public void PlayWaveStart(bool isFinalWave)
+    {
+        PlaySFX(isFinalWave && finalWaveSound != null ? finalWaveSound : waveStartSound);
+    }
+
     public void PlayLevelWin()
     {
+        FadeMusicTo(0.25f);
         PlaySFX(levelWinSound);
     }
 
     public void PlayLevelFail()
     {
+        FadeMusicTo(0.25f);
         PlaySFX(levelFailSound);
     }
+
+    public void PlayMenuMusic() => SwitchMusic(menuMusic);
+    public void PlayGameplayMusic() => SwitchMusic(gameplayMusic);
+    public void PlayBossMusic() => SwitchMusic(bossMusic != null ? bossMusic : gameplayMusic);
 
     #endregion
 
@@ -110,12 +160,36 @@ public class SoundManager : MonoBehaviour
     /// <summary>
     /// Kisi bhi generic sound ko play karne ke liye (with pitch randomization)
     /// </summary>
-    public void PlaySFX(AudioClip clip, float minPitch = 1f, float maxPitch = 1f)
+    public void PlaySFX(AudioClip clip, float minPitch = 1f, float maxPitch = 1f, float volumeScale = 1f)
     {
         if (clip == null || isSfxMuted || sfxSource == null) return;
+        if (IsThrottled(clip.GetHashCode())) return;
 
         sfxSource.pitch = Random.Range(minPitch, maxPitch);
-        sfxSource.PlayOneShot(clip, sfxVolume);
+        sfxSource.PlayOneShot(clip, sfxVolume * volumeScale);
+    }
+
+    /// <summary>
+    /// Clips mein se random ek bajaye (multiple hits ek frame mein hon to sirf ek baje)
+    /// </summary>
+    public void PlayRandomSFX(AudioClip[] clips, float minPitch = 1f, float maxPitch = 1f, float volumeScale = 1f)
+    {
+        if (clips == null || clips.Length == 0 || isSfxMuted || sfxSource == null) return;
+        if (IsThrottled(clips.GetHashCode())) return;
+
+        AudioClip clip = clips[Random.Range(0, clips.Length)];
+        if (clip == null) return;
+
+        sfxSource.pitch = Random.Range(minPitch, maxPitch);
+        sfxSource.PlayOneShot(clip, sfxVolume * volumeScale);
+    }
+
+    private bool IsThrottled(int key)
+    {
+        float now = Time.unscaledTime;
+        if (lastPlayTime.TryGetValue(key, out float last) && now - last < sameSoundMinGap) return true;
+        lastPlayTime[key] = now;
+        return false;
     }
 
     /// <summary>
@@ -125,15 +199,56 @@ public class SoundManager : MonoBehaviour
     {
         if (musicClip == null || musicSource == null) return;
 
+        musicFade?.Kill();
         musicSource.clip = musicClip;
         musicSource.volume = musicVolume;
         musicSource.mute = isMusicMuted;
         musicSource.Play();
     }
 
+    /// <summary>
+    /// Smooth crossfade (same clip ho to sirf volume wapis laaye)
+    /// </summary>
+    private void SwitchMusic(AudioClip clip)
+    {
+        if (clip == null || musicSource == null) return;
+
+        if (musicSource.clip == clip && musicSource.isPlaying)
+        {
+            FadeMusicTo(1f);
+            return;
+        }
+
+        musicFade?.Kill();
+        musicFade = musicSource.DOFade(0f, musicFadeTime * 0.5f).SetUpdate(true).OnComplete(() =>
+        {
+            musicSource.clip = clip;
+            musicSource.mute = isMusicMuted;
+            musicSource.Play();
+            musicFade = musicSource.DOFade(musicVolume, musicFadeTime).SetUpdate(true);
+        });
+    }
+
+    private void FadeMusicTo(float volumeFactor)
+    {
+        if (musicSource == null) return;
+        musicFade?.Kill();
+        musicFade = musicSource.DOFade(musicVolume * volumeFactor, musicFadeTime).SetUpdate(true);
+    }
+
     public void StopMusic()
     {
         if (musicSource != null) musicSource.Stop();
+    }
+
+    private void StartAmbience()
+    {
+        if (ambienceSource == null || ambienceClip == null) return;
+        ambienceSource.clip = ambienceClip;
+        ambienceSource.loop = true;
+        ambienceSource.volume = ambienceVolume * musicVolume;
+        ambienceSource.mute = isMusicMuted;
+        ambienceSource.Play();
     }
 
     #endregion
@@ -150,6 +265,7 @@ public class SoundManager : MonoBehaviour
     {
         isMusicMuted = !state;
         if (musicSource != null) musicSource.mute = isMusicMuted;
+        if (ambienceSource != null) ambienceSource.mute = isMusicMuted;
         PlayerPrefs.SetInt("Music_Muted", isMusicMuted ? 1 : 0);
     }
 

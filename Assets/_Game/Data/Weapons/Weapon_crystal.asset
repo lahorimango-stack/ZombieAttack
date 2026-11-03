@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cff9e7ca5df8164458cbd12ca4e76d13, type: 3}
+  m_Name: Weapon_crystal
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDataSO
+  weaponId: crystal
+  displayName: Crystal Spear
+  description: Ice crystals that pierce 3 zombies in a row.
+  icon: {fileID: 21300000, guid: a6fda7064af3f7047afa8316968a44f0, type: 3}
+  themeColor: {r: 0.45, g: 0.75, b: 1, a: 1}
+  unlockLevel: 2
+  weaponPrefab: {fileID: 8492613542685010963, guid: 414398afdb4b31d4cbd96fdaccc9ab8d, type: 3}
+  spawnInterval: 0.09
+  minDistanceBetween: 0.3
+  maxCount: 10
+  spawnScale: 1
+  launchSpeed: 40
+  useGravity: 0
+  gravity: 12
+  launchUpAngle: 0
+  spinAxis: {x: 1, y: 0, z: 0}
+  spinSpeed: 0
+  useVisualEulers: 0
+  drawnVisualEuler: {x: 0, y: 0, z: -90}
+  flightVisualEuler: {x: 90, y: 0, z: 0}
+  alignToVelocity: 0
+  lifeTime: 2
+  hitRadius: 0.24
+  damage: 34
+  pierceCount: 2
+  explosionRadius: 0
+  explosionDamage: 0
+  impactForce: 24
+  chainCount: 0
+  chainRadius: 4
+  chainDamageFactor: 0.7
+  chainLineMaterial: {fileID: 0}
+  fireZoneDuration: 0
+  fireZoneRadius: 2
+  fireZoneDps: 30
+  fireZoneVfx: {fileID: 0}
+  minRange: 6
+  maxRange: 22
+  spawnVfx: {fileID: 2414354224923677750, guid: 46acf061a5f5c224cb34fec424e3c00a, type: 3}
+  hitVfx: {fileID: 3390643369817325887, guid: ce5087992789e9c44a11c567a73cce8e, type: 3}
+  explosionVfx: {fileID: 0}
+  launchSounds:
+  - {fileID: 8300000, guid: 641482022e65d08458cfc46d0da318cd, type: 3}
+  - {fileID: 8300000, guid: d0d42bc8c98476646a7b88be93b1948f, type: 3}
+  - {fileID: 8300000, guid: 02981d1f2ba873b468dcd08522e34ced, type: 3}
+  - {fileID: 8300000, guid: 389ca9a16fa6dc745ac9f5c66e2fcaed, type: 3}
+  hitSounds:
+  - {fileID: 8300000, guid: 0ca7dae042a17d446b8ebc2efa3d5e1e, type: 3}
+  - {fileID: 8300000, guid: 95d1d0c389563494197ad6c0c1e9c9ad, type: 3}
+  - {fileID: 8300000, guid: 88d718a0695cc2648b0b609d9f74808d, type: 3}
+  explosionSounds: []
+  cameraShake: 0

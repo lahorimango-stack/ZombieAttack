@@ -1,0 +1,35 @@
+fileFormatVersion: 2
+guid: 6edef77d1e1a9114ca8a1c9a72d5e4b5
+labels:
+- usfx
+- imphenzia
+- stereo
+- loop
+- rain
+- nature
+- natural
+- weather
+- rainfall
+- storm
+- water
+AudioImporter:
+  externalObjects: {}
+  serializedVersion: 8
+  defaultSettings:
+    serializedVersion: 2
+    loadType: 2
+    sampleRateSetting: 0
+    sampleRateOverride: 0
+    compressionFormat: 1
+    quality: 0.45
+    conversionMode: 0
+    preloadAudioData: 1
+  platformSettingOverrides: {}
+  forceToMono: 0
+  normalize: 1
+  loadInBackground: 1
+  ambisonic: 0
+  3D: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,501 @@
+#if UNITY_EDITOR
+using System.Collections.Generic;
+using TMPro;
+using UnityEditor;
+using UnityEditor.Events;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
+using UnityEngine.UI;
+
+public static partial class ZombieGameBuilder
+{
+    private static TMP_FontAsset fontRegular;
+    private static TMP_FontAsset fontOutline;
+
+    private static readonly Color TextWhite = Color.white;
+    private static readonly Color TextYellow = new Color(1f, 0.86f, 0.25f);
+    private static readonly Color TextRed = new Color(1f, 0.35f, 0.3f);
+    private static readonly Color ZombieGreen = new Color(0.62f, 1f, 0.28f);
+
+    private static void BuildUI()
+    {
+        fontRegular = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ThirdParty/CasualUI/Fonts/LilitaOne-Regular SDF.asset");
+        fontOutline = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ThirdParty/CasualUI/Fonts/LilitaOne-Regular Outline 72 SDF.asset");
+        if (fontOutline == null) fontOutline = fontRegular;
+
+        // Canvas + EventSystem
+        var canvasGo = new GameObject("UI Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 10;
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0.35f;
+
+        new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
+        var ui = canvasGo.AddComponent<UIManager>();
+
+        // Damage vignette sab se neeche (HUD ke peeche)
+        var vignette = Img(canvasGo.transform, "DamageVignette", UISprite("Background_ScreenGlow"), Vector2.zero, Vector2.zero, Color.red);
+        StretchFull(vignette.rectTransform);
+        vignette.color = new Color(1f, 0.05f, 0.05f, 0f);
+
+        var safe = Rect("SafeArea", canvasGo.transform);
+        StretchFull(safe);
+        safe.gameObject.AddComponent<SafeAreaFitter>();
+
+        BuildHUD(safe, ui);
+        BuildHome(safe, ui);
+        BuildTopBar(safe, ui);
+        BuildWeaponPanel(safe, ui);
+        BuildSettingsPanel(safe, ui);
+        BuildPausePanel(safe, ui);
+        BuildWinPanel(safe, ui);
+        BuildFailPanel(safe, ui);
+
+        Set(ui, "damageVignette", vignette);
+
+        var grad = new Gradient();
+        grad.SetKeys(
+            new[] { new GradientColorKey(new Color(1f, 0.2f, 0.15f), 0f), new GradientColorKey(new Color(1f, 0.8f, 0.2f), 0.5f), new GradientColorKey(new Color(0.45f, 1f, 0.3f), 1f) },
+            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
+        Set(ui, "barricadeColor", grad);
+        ZombieUIRestyle.ApplyTo(canvasGo);
+    }
+
+    #region Screens
+
+    private static void BuildTopBar(RectTransform safe, UIManager ui)
+    {
+        var bar = Rect("TopBar", safe);
+        StretchFull(bar);
+
+        var pill = Img(bar, "CoinPill", UISprite("StatusBarFrame_White"), new Vector2(0f, 1f), new Vector2(215f, -80f), new Color(0.08f, 0.08f, 0.12f, 0.85f), new Vector2(320f, 92f));
+        var coinIcon = Img(pill.transform, "CoinIcon", UISprite("StatusBarIcon_Gold"), new Vector2(0f, 0.5f), new Vector2(15f, 0f), Color.white, new Vector2(110f, 110f));
+        var coinText = Txt(pill.transform, "CoinText", "0", 56f, new Vector2(0.5f, 0.5f), new Vector2(35f, 2f), new Vector2(220f, 80f), TextYellow, TextAlignmentOptions.Center);
+
+        Set(ui, "coinText", coinText);
+        Set(ui, "coinIcon", coinIcon.rectTransform);
+    }
+
+    private static void BuildHome(RectTransform safe, UIManager ui)
+    {
+        var home = Rect("HomePanel", safe);
+        StretchFull(home);
+        home.gameObject.AddComponent<CanvasGroup>();
+
+        var dim = Img(home, "BottomDim", UISprite("Background_ScreenDimed_Black"), Vector2.zero, Vector2.zero, new Color(1f, 1f, 1f, 0.55f));
+        StretchFull(dim.rectTransform);
+
+        var title1 = Txt(home, "Title_Zombie", "ZOMBIE", 180f, new Vector2(0.5f, 1f), new Vector2(0f, -360f), new Vector2(1000f, 220f), ZombieGreen, TextAlignmentOptions.Center, true);
+        title1.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 4f);
+        var title2 = Txt(home, "Title_Attack", "ATTACK", 200f, new Vector2(0.5f, 1f), new Vector2(0f, -560f), new Vector2(1000f, 230f), TextRed, TextAlignmentOptions.Center, true);
+        title2.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -3f);
+
+        var ribbon = Img(home, "LevelRibbon", UISprite("Label_TitleRibbon_Orange"), new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), Color.white, new Vector2(640f, 160f));
+        var levelText = Txt(ribbon.transform, "LevelText", "LEVEL 1", 76f, new Vector2(0.5f, 0.5f), new Vector2(0f, 12f), new Vector2(560f, 110f), TextWhite, TextAlignmentOptions.Center, true);
+
+        // Weapon card (tap = weapon select)
+        var weaponBtn = Btn(home, "WeaponButton", UISprite("Frame_CardFrame03_Blue"), new Vector2(0.5f, 0f), new Vector2(0f, 700f), new Vector2(340f, 340f), null, 0f, ui.OnWeaponButtonClicked);
+        var weaponIcon = Img(weaponBtn.transform, "Icon", null, new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), Color.white, new Vector2(230f, 230f));
+        weaponIcon.preserveAspect = true;
+        var weaponName = Txt(weaponBtn.transform, "Name", "KNIFE", 44f, new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(320f, 60f), TextWhite, TextAlignmentOptions.Center, true);
+        Txt(home, "ChangeHint", "TAP TO CHANGE WEAPON", 34f, new Vector2(0.5f, 0f), new Vector2(0f, 500f), new Vector2(700f, 50f), new Color(1f, 1f, 1f, 0.8f), TextAlignmentOptions.Center);
+
+        // Play button (pulse wrapper)
+        var pulse = Rect("PlayPulse", home, new Vector2(0.5f, 0f), new Vector2(0f, 320f), new Vector2(660f, 220f));
+        var p = pulse.gameObject.AddComponent<UIPulse>();
+        Set(p, "amount", 0.05f);
+        Set(p, "duration", 0.65f);
+        var playBtn = Btn(pulse, "PlayButton", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(660f, 220f), "PLAY", 110f, ui.OnPlayButtonClicked);
+
+        // Settings
+        var settingsBtn = Btn(home, "SettingsButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(1f, 1f), new Vector2(-95f, -85f), new Vector2(140f, 140f), null, 0f, ui.OnSettingsButtonClicked);
+        Img(settingsBtn.transform, "Icon", UISprite("Icon_PictoIcon_Setting"), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), Color.white, new Vector2(80f, 80f));
+
+        Set(ui, "homePanel", home.gameObject);
+        Set(ui, "homeLevelText", levelText);
+        Set(ui, "homeWeaponIcon", weaponIcon);
+        Set(ui, "homeWeaponName", weaponName);
+    }
+
+    private static void BuildHUD(RectTransform safe, UIManager ui)
+    {
+        var hud = Rect("HUDPanel", safe);
+        StretchFull(hud);
+
+        // Thoda right: "LEVEL 10  WAVE 3/4" coins ke counter se na takraye
+        var levelText = Txt(hud, "LevelText", "LEVEL 1", 54f, new Vector2(0.5f, 1f), new Vector2(60f, -75f), new Vector2(560f, 90f), TextWhite, TextAlignmentOptions.Center, true);
+        levelText.enableAutoSizing = true;
+        levelText.fontSizeMin = 34f;
+        levelText.fontSizeMax = 54f;
+
+        // Kills progress
+        var progFrame = Img(hud, "ProgressBar", UISprite("Slider11_Frame"), new Vector2(0.5f, 1f), new Vector2(30f, -160f), Color.white, new Vector2(600f, 58f));
+        var progFill = FillImage(progFrame.transform, "Fill", UISprite("Slider11_Fill_Yellow"), new Vector4(8f, 8f, 8f, 8f));
+        progFill.fillAmount = 0f;
+        Img(progFrame.transform, "SkullIcon", UISprite("Icon_StatsIcon_Skeleton"), new Vector2(0f, 0.5f), new Vector2(-30f, 0f), Color.white, new Vector2(96f, 96f));
+        var progText = Txt(progFrame.transform, "Text", "0/0", 40f, new Vector2(0.5f, 0.5f), new Vector2(0f, 2f), new Vector2(300f, 56f), TextWhite, TextAlignmentOptions.Center, true);
+
+        // Barricade HP
+        var hpFrame = Img(hud, "BarricadeBar", UISprite("Slider10_Frame"), new Vector2(0.5f, 1f), new Vector2(30f, -235f), Color.white, new Vector2(600f, 52f));
+        var hpFill = FillImage(hpFrame.transform, "Fill", UISprite("Slider10_Fill_Green"), new Vector4(6f, 6f, 6f, 6f));
+        Img(hpFrame.transform, "ShieldIcon", UISprite("Icon_StatsIcon_Hp01"), new Vector2(0f, 0.5f), new Vector2(-30f, 0f), Color.white, new Vector2(88f, 88f));
+        var hpText = Txt(hpFrame.transform, "Text", "100%", 36f, new Vector2(0.5f, 0.5f), new Vector2(0f, 2f), new Vector2(300f, 50f), TextWhite, TextAlignmentOptions.Center, true);
+
+        // Boss bar (boss aate hi): naam + bara laal bar
+        var bossRoot = Rect("BossBar", hud, new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(820f, 120f));
+        var bossName = Txt(bossRoot, "Name", "KING OF THE DEAD", 44f, new Vector2(0.5f, 1f), new Vector2(0f, -22f), new Vector2(800f, 56f), new Color(1f, 0.35f, 0.3f), TextAlignmentOptions.Center, true);
+        var bossFrame = Img(bossRoot, "Frame", UISprite("Slider10_Frame"), new Vector2(0.5f, 0f), new Vector2(0f, 30f), Color.white, new Vector2(800f, 56f));
+        var bossFill = FillImage(bossFrame.transform, "Fill", UISprite("Slider10_Fill_Red"), new Vector4(6f, 6f, 6f, 6f));
+        Img(bossFrame.transform, "SkullIcon", UISprite("Icon_StatsIcon_Skeleton"), new Vector2(0f, 0.5f), new Vector2(-28f, 0f), new Color(1f, 0.45f, 0.4f), new Vector2(92f, 92f));
+        bossRoot.gameObject.SetActive(false);
+
+        // Pause
+        var pauseBtn = Btn(hud, "PauseButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(1f, 1f), new Vector2(-95f, -85f), new Vector2(130f, 130f), null, 0f, ui.OnPauseButtonClicked);
+        Img(pauseBtn.transform, "Icon", UISprite("Icon_PictoIcon_Pause"), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), Color.white, new Vector2(70f, 70f));
+
+        // Weapon switch button
+        var weaponBtn = Btn(hud, "WeaponButton", UISprite("Btn_OtherButton_Square01_Yellow"), new Vector2(0f, 0f), new Vector2(150f, 190f), new Vector2(210f, 210f), null, 0f, ui.OnWeaponButtonClicked);
+        var hudIcon = Img(weaponBtn.transform, "Icon", null, new Vector2(0.5f, 0.5f), new Vector2(0f, 8f), Color.white, new Vector2(160f, 160f));
+        hudIcon.preserveAspect = true;
+        var hudName = Txt(weaponBtn.transform, "Name", "KNIFE", 34f, new Vector2(0.5f, 0f), new Vector2(0f, -22f), new Vector2(260f, 46f), TextWhite, TextAlignmentOptions.Center, true);
+        var powerPill = Img(weaponBtn.transform, "PowerPill", UISprite("StatusBarFrame_White"), new Vector2(0.5f, 1f), new Vector2(0f, 26f), new Color(0.08f, 0.08f, 0.12f, 0.85f), new Vector2(230f, 52f));
+        var hudPower = Txt(powerPill.transform, "Power", "DMG 36  x10", 30f, new Vector2(0.5f, 0.5f), new Vector2(0f, 1f), new Vector2(220f, 46f), TextYellow, TextAlignmentOptions.Center, true);
+
+        // Tutorial hint
+        var hint = Rect("TutorialHint", hud, new Vector2(0.5f, 0f), new Vector2(0f, 520f), new Vector2(900f, 400f));
+        var hand = Img(hint, "Hand", UISprite("Icon_ImageIcon_Tutorial_Hand"), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), Color.white, new Vector2(190f, 190f));
+        var handPulse = hand.gameObject.AddComponent<UIPulse>();
+        Set(handPulse, "mode", UIPulse.PulseMode.TapHand);
+        Set(handPulse, "amount", 170f);
+        Set(handPulse, "duration", 0.6f);
+        Txt(hint, "Text", "DRAG TO DRAW WEAPONS\nRELEASE TO THROW!", 50f, new Vector2(0.5f, 0.5f), new Vector2(0f, 130f), new Vector2(900f, 140f), TextYellow, TextAlignmentOptions.Center, true);
+
+        // Wave banner
+        var banner = Rect("WaveBanner", hud, new Vector2(0.5f, 0.5f), new Vector2(0f, 260f), new Vector2(960f, 250f));
+        var bannerCg = banner.gameObject.AddComponent<CanvasGroup>();
+        bannerCg.blocksRaycasts = false;
+        var bannerBg = Img(banner, "BG", UISprite("Play_ActionText_Frame_Orange"), new Vector2(0.5f, 0.5f), Vector2.zero, Color.white, new Vector2(960f, 250f));
+        var bannerTitle = Txt(banner, "Title", "WAVE 1/3", 96f, new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(920f, 120f), TextWhite, TextAlignmentOptions.Center, true);
+        var bannerSub = Txt(banner, "Sub", "Zombies are coming...", 42f, new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(900f, 60f), TextYellow, TextAlignmentOptions.Center, true);
+
+        hud.gameObject.SetActive(false);
+
+        Set(ui, "hudPanel", hud.gameObject);
+        Set(ui, "levelText", levelText);
+        Set(ui, "progressFill", progFill);
+        Set(ui, "progressText", progText);
+        Set(ui, "barricadeFill", hpFill);
+        Set(ui, "barricadeText", hpText);
+        Set(ui, "hudWeaponIcon", hudIcon);
+        Set(ui, "hudWeaponName", hudName);
+        Set(ui, "hudWeaponPower", hudPower);
+        Set(ui, "tutorialHint", hint.gameObject);
+        Set(ui, "bossBarRoot", bossRoot.gameObject);
+        Set(ui, "bossBarFill", bossFill);
+        Set(ui, "bossBarName", bossName);
+        Set(ui, "waveBanner", bannerCg);
+        Set(ui, "waveBannerText", bannerTitle);
+        Set(ui, "waveBannerSubText", bannerSub);
+        Set(ui, "waveBannerBackground", bannerBg);
+        Set(ui, "normalBannerSprite", UISprite("Play_ActionText_Frame_Orange"));
+        Set(ui, "dangerBannerSprite", UISprite("Play_ActionText_Frame_Red"));
+    }
+
+    private static void BuildWeaponPanel(RectTransform safe, UIManager ui)
+    {
+        var (panel, window) = Popup(safe, "WeaponPanel", UISprite("Popup_Frame01_Navy"), new Vector2(980f, 1420f), "WEAPONS", UISprite("Label_TitleRibbon_Yellow"));
+
+        var grid = Rect("Grid", window, new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(880f, 1220f));
+        var layout = grid.gameObject.AddComponent<GridLayoutGroup>();
+        layout.cellSize = new Vector2(410f, 380f);
+        layout.spacing = new Vector2(30f, 30f);
+        layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        layout.constraintCount = 2;
+        layout.childAlignment = TextAnchor.UpperCenter;
+
+        var cards = new List<WeaponCardUI>();
+        foreach (var weapon in LoadWeaponData())
+            cards.Add(BuildWeaponCard(grid, weapon));
+
+        CloseButton(window, ui.OnCloseWeaponPanel);
+
+        panel.gameObject.SetActive(false);
+        Set(ui, "weaponPanel", panel.gameObject);
+        SetList(ui, "weaponCards", cards);
+    }
+
+    private static WeaponCardUI BuildWeaponCard(RectTransform grid, WeaponDataSO weapon)
+    {
+        var card = Rect("Card_" + weapon.weaponId, grid);
+        var frame = card.gameObject.AddComponent<Image>();
+        frame.sprite = UISprite("Frame_CardFrame03_Blue");
+        frame.type = frame.sprite != null && frame.sprite.border != Vector4.zero ? Image.Type.Sliced : Image.Type.Simple;
+        var button = card.gameObject.AddComponent<Button>();
+        button.targetGraphic = frame;
+        card.gameObject.AddComponent<UIButtonFeedback>();
+
+        var icon = Img(card, "Icon", weapon.icon, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), Color.white, new Vector2(190f, 190f));
+        icon.preserveAspect = true;
+        var name = Txt(card, "Name", weapon.displayName.ToUpper(), 44f, new Vector2(0.5f, 0.5f), new Vector2(0f, -30f), new Vector2(380f, 56f), TextWhite, TextAlignmentOptions.Center, true);
+
+        // Stats
+        var stats = Rect("Stats", card, new Vector2(0.5f, 0f), new Vector2(0f, 62f), new Vector2(360f, 100f));
+        Image dmg = StatBar(stats, "DMG", 30f, out TMP_Text dmgVal);
+        Image spd = StatBar(stats, "SPD", 0f, out TMP_Text spdVal);
+        Image area = StatBar(stats, "AREA", -30f, out TMP_Text areaVal);
+
+        // Locked overlay
+        var locked = Rect("Locked", card);
+        StretchFull(locked);
+        Img(locked, "Lock", UISprite("Icon_ImageIcon_Lock01_m"), new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), Color.white, new Vector2(130f, 130f));
+        var lockText = Txt(locked, "Text", "LEVEL 2", 40f, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(380f, 60f), TextYellow, TextAlignmentOptions.Center, true);
+        Txt(locked, "Hint", "UNLOCKS AT", 30f, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(380f, 50f), TextWhite, TextAlignmentOptions.Center);
+
+        // Equipped badge
+        var badge = Img(card, "Equipped", UISprite("Label_TitleRibbon_Green"), new Vector2(0.5f, 1f), new Vector2(0f, -10f), Color.white, new Vector2(300f, 84f));
+        Txt(badge.transform, "Text", "EQUIPPED", 34f, new Vector2(0.5f, 0.5f), new Vector2(0f, 8f), new Vector2(260f, 60f), TextWhite, TextAlignmentOptions.Center, true);
+
+        var ui = card.gameObject.AddComponent<WeaponCardUI>();
+        Set(ui, "weapon", weapon);
+        Set(ui, "button", button);
+        Set(ui, "frameImage", frame);
+        Set(ui, "iconImage", icon);
+        Set(ui, "nameText", name);
+        Set(ui, "damageBar", dmg);
+        Set(ui, "speedBar", spd);
+        Set(ui, "areaBar", area);
+        Set(ui, "damageValue", dmgVal);
+        Set(ui, "speedValue", spdVal);
+        Set(ui, "areaValue", areaVal);
+        Set(ui, "statsRoot", stats.gameObject);
+        Set(ui, "lockedRoot", locked.gameObject);
+        Set(ui, "lockedText", lockText);
+        Set(ui, "equippedBadge", badge.gameObject);
+        Set(ui, "normalFrame", UISprite("Frame_CardFrame03_Blue"));
+        Set(ui, "selectedFrame", UISprite("Frame_CardFrame03_Green"));
+        Set(ui, "lockedFrame", UISprite("Frame_CardFrame03_Dim"));
+        return ui;
+    }
+
+    private static Image StatBar(RectTransform parent, string label, float y, out TMP_Text value)
+    {
+        Txt(parent, label + "_Label", label, 26f, new Vector2(0f, 0.5f), new Vector2(45f, y), new Vector2(90f, 30f), new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Left);
+        var frame = Img(parent, label + "_Bar", UISprite("Slider04_Frame"), new Vector2(0f, 0.5f), new Vector2(200f, y), Color.white, new Vector2(190f, 22f));
+        value = Txt(parent, label + "_Value", "0", 28f, new Vector2(0f, 0.5f), new Vector2(330f, y), new Vector2(70f, 30f), TextYellow, TextAlignmentOptions.Right, true);
+        return FillImage(frame.transform, "Fill", UISprite("Slider04_Fill_Orange"), new Vector4(3f, 3f, 3f, 3f));
+    }
+
+    private static void BuildSettingsPanel(RectTransform safe, UIManager ui)
+    {
+        var (panel, window) = Popup(safe, "SettingsPanel", UISprite("Popup_Frame01_Purple"), new Vector2(840f, 820f), "SETTINGS", UISprite("Label_TitleRibbon_Orange"));
+
+        SettingRow(window, SettingToggleUI.SettingType.Sound, "SOUND", 150f, UISprite("Icon_PictoIcon_Sound_on"), UISprite("Icon_PictoIcon_Sound_off"));
+        SettingRow(window, SettingToggleUI.SettingType.Music, "MUSIC", -20f, UISprite("Icon_PictoIcon_Music_on"), UISprite("Icon_PictoIcon_Music_off"));
+        SettingRow(window, SettingToggleUI.SettingType.Haptic, "VIBRATION", -190f, UISprite("Icon_PictoIcon_Haptic"), null);
+
+        CloseButton(window, ui.OnCloseSettings);
+        panel.gameObject.SetActive(false);
+        Set(ui, "settingsPanel", panel.gameObject);
+    }
+
+    private static void SettingRow(RectTransform window, SettingToggleUI.SettingType type, string label, float y, Sprite on, Sprite off)
+    {
+        var btn = Btn(window, label + "_Toggle", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(0.5f, 0.5f), new Vector2(-220f, y), new Vector2(150f, 150f), null, 0f, null);
+        var icon = Img(btn.transform, "Icon", on, new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), Color.white, new Vector2(84f, 84f));
+        Txt(window, label + "_Label", label, 60f, new Vector2(0.5f, 0.5f), new Vector2(90f, y), new Vector2(420f, 90f), TextWhite, TextAlignmentOptions.Left, true);
+
+        var t = btn.gameObject.AddComponent<SettingToggleUI>();
+        Set(t, "setting", type);
+        Set(t, "button", btn);
+        Set(t, "iconImage", icon);
+        Set(t, "onIcon", on);
+        Set(t, "offIcon", off);
+    }
+
+    private static void BuildPausePanel(RectTransform safe, UIManager ui)
+    {
+        var (panel, window) = Popup(safe, "PausePanel", UISprite("Popup_Frame01_Navy"), new Vector2(780f, 860f), "PAUSED", UISprite("Label_TitleRibbon_Yellow"));
+        Btn(window, "ResumeButton", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0.5f), new Vector2(0f, 140f), new Vector2(560f, 160f), "RESUME", 70f, ui.OnResumeButtonClicked);
+        Btn(window, "RestartButton", UISprite("Btn_MainButton_Orange"), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(560f, 160f), "RESTART", 70f, ui.OnRestartButtonClicked);
+        Btn(window, "HomeButton", UISprite("Btn_MainButton_Red"), new Vector2(0.5f, 0.5f), new Vector2(0f, -220f), new Vector2(560f, 160f), "HOME", 70f, ui.OnHomeButtonClicked);
+        panel.gameObject.SetActive(false);
+        Set(ui, "pausePanel", panel.gameObject);
+    }
+
+    private static void BuildWinPanel(RectTransform safe, UIManager ui)
+    {
+        var (panel, window) = Popup(safe, "WinPanel", UISprite("Popup_Frame01_Navy"), new Vector2(920f, 1240f), "VICTORY!", UISprite("Label_TitleRibbon_Green"));
+
+        var title = Txt(window, "Title", "LEVEL 1\nCLEARED!", 76f, new Vector2(0.5f, 0.5f), new Vector2(0f, 360f), new Vector2(820f, 200f), TextWhite, TextAlignmentOptions.Center, true);
+
+        var stars = new Image[3];
+        stars[0] = Img(window, "Star1", UISprite("Icon_ImageIcon_StarGrade_l_On"), new Vector2(0.5f, 0.5f), new Vector2(-200f, 140f), Color.white, new Vector2(160f, 160f));
+        stars[1] = Img(window, "Star2", UISprite("Icon_ImageIcon_StarGrade_l_On"), new Vector2(0.5f, 0.5f), new Vector2(0f, 175f), Color.white, new Vector2(200f, 200f));
+        stars[2] = Img(window, "Star3", UISprite("Icon_ImageIcon_StarGrade_l_On"), new Vector2(0.5f, 0.5f), new Vector2(200f, 140f), Color.white, new Vector2(160f, 160f));
+        foreach (var s in stars) s.preserveAspect = true;
+
+        Img(window, "CoinIcon", UISprite("StatusBarIcon_Gold"), new Vector2(0.5f, 0.5f), new Vector2(-120f, -15f), Color.white, new Vector2(120f, 120f));
+        var coins = Txt(window, "Coins", "+0", 84f, new Vector2(0.5f, 0.5f), new Vector2(70f, -12f), new Vector2(320f, 110f), TextYellow, TextAlignmentOptions.Left, true);
+
+        var unlock = Rect("Unlock", window, new Vector2(0.5f, 0.5f), new Vector2(0f, -215f), new Vector2(800f, 190f));
+        Img(unlock, "Glow", UISprite("Popup_00_Glow_white"), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(1f, 0.85f, 0.3f, 0.35f), new Vector2(800f, 190f));
+        var unlockFrame = Img(unlock, "Frame", UISprite("Frame_ItemFrame01_Color_Yellow"), new Vector2(0.5f, 0.5f), new Vector2(-270f, 0f), Color.white, new Vector2(170f, 170f));
+        var unlockIcon = Img(unlockFrame.transform, "Icon", null, new Vector2(0.5f, 0.5f), Vector2.zero, Color.white, new Vector2(140f, 140f));
+        unlockIcon.preserveAspect = true;
+        var unlockText = Txt(unlock, "Text", "NEW WEAPON: AXE", 46f, new Vector2(0.5f, 0.5f), new Vector2(90f, 0f), new Vector2(520f, 160f), TextYellow, TextAlignmentOptions.Center, true);
+
+        Btn(window, "NextButton", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0.5f), new Vector2(70f, -440f), new Vector2(560f, 180f), "NEXT", 84f, ui.OnNextButtonClicked);
+        var homeBtn = Btn(window, "HomeButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(0.5f, 0.5f), new Vector2(-320f, -440f), new Vector2(150f, 150f), null, 0f, ui.OnHomeButtonClicked);
+        Img(homeBtn.transform, "Icon", UISprite("Icon_PictoIcon_Home"), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), Color.white, new Vector2(84f, 84f));
+
+        panel.gameObject.SetActive(false);
+        Set(ui, "winPanel", panel.gameObject);
+        Set(ui, "winTitleText", title);
+        Set(ui, "winCoinsText", coins);
+        Set(ui, "winStars", stars);
+        Set(ui, "starOnSprite", UISprite("Icon_ImageIcon_StarGrade_l_On"));
+        Set(ui, "starOffSprite", UISprite("Icon_ImageIcon_StarGrade_l_Off"));
+        Set(ui, "unlockRoot", unlock.gameObject);
+        Set(ui, "unlockIcon", unlockIcon);
+        Set(ui, "unlockNameText", unlockText);
+    }
+
+    private static void BuildFailPanel(RectTransform safe, UIManager ui)
+    {
+        var (panel, window) = Popup(safe, "FailPanel", UISprite("Popup_Frame01_Purple"), new Vector2(900f, 940f), "DEFEAT", UISprite("Label_TitleFlag01_Red"));
+
+        Txt(window, "Title", "THE ZOMBIES\nGOT YOU!", 70f, new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), new Vector2(820f, 200f), TextRed, TextAlignmentOptions.Center, true);
+        var info = Txt(window, "Info", "Zombies killed: 0/0", 46f, new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(820f, 70f), TextWhite, TextAlignmentOptions.Center, true);
+
+        Btn(window, "RetryButton", UISprite("Btn_MainButton_Orange"), new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(600f, 180f), "TRY AGAIN", 78f, ui.OnRestartButtonClicked);
+        Btn(window, "HomeButton", UISprite("Btn_MainButton_Gray"), new Vector2(0.5f, 0.5f), new Vector2(0f, -330f), new Vector2(420f, 130f), "HOME", 60f, ui.OnHomeButtonClicked);
+
+        panel.gameObject.SetActive(false);
+        Set(ui, "failPanel", panel.gameObject);
+        Set(ui, "failInfoText", info);
+    }
+
+    #endregion
+
+    #region UI Helpers
+
+    private static (RectTransform panel, RectTransform window) Popup(RectTransform parent, string name, Sprite windowSprite, Vector2 size, string title, Sprite ribbonSprite)
+    {
+        var panel = Rect(name, parent);
+        StretchFull(panel);
+        panel.gameObject.AddComponent<CanvasGroup>();
+
+        var dim = Img(panel, "Dim", UISprite("Background_ScreenDimed_Black"), Vector2.zero, Vector2.zero, new Color(1f, 1f, 1f, 0.9f));
+        StretchFull(dim.rectTransform);
+        dim.raycastTarget = true;
+
+        var windowImg = Img(panel, "Window", windowSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), Color.white, size);
+        windowImg.raycastTarget = true;
+        var window = windowImg.rectTransform;
+
+        if (ribbonSprite != null)
+        {
+            var ribbon = Img(window, "TitleRibbon", ribbonSprite, new Vector2(0.5f, 1f), new Vector2(0f, 10f), Color.white, new Vector2(Mathf.Min(size.x * 0.8f, 720f), 170f));
+            Txt(ribbon.transform, "Title", title, 80f, new Vector2(0.5f, 0.5f), new Vector2(0f, 14f), new Vector2(640f, 110f), TextWhite, TextAlignmentOptions.Center, true);
+        }
+        return (panel, window);
+    }
+
+    private static void CloseButton(RectTransform window, UnityAction action)
+    {
+        var btn = Btn(window, "CloseButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(1f, 1f), new Vector2(-20f, -20f), new Vector2(120f, 120f), null, 0f, action);
+        Img(btn.transform, "Icon", UISprite("Icon_PictoIcon_Close01"), new Vector2(0.5f, 0.5f), new Vector2(0f, 3f), Color.white, new Vector2(64f, 64f));
+    }
+
+    private static RectTransform Rect(string name, Transform parent)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        return (RectTransform)go.transform;
+    }
+
+    private static RectTransform Rect(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size)
+    {
+        var rt = Rect(name, parent);
+        rt.anchorMin = rt.anchorMax = anchor;
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+        return rt;
+    }
+
+    private static void StretchFull(RectTransform rt)
+    {
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+    }
+
+    private static Image Img(Transform parent, string name, Sprite sprite, Vector2 anchor, Vector2 pos, Color color, Vector2? size = null)
+    {
+        var rt = Rect(name, parent, anchor, pos, size ?? new Vector2(100f, 100f));
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = sprite;
+        img.color = color;
+        img.raycastTarget = false;
+        if (sprite != null && sprite.border != Vector4.zero) img.type = Image.Type.Sliced;
+        return img;
+    }
+
+    private static Image FillImage(Transform parent, string name, Sprite sprite, Vector4 padding)
+    {
+        var rt = Rect(name, parent);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(padding.x, padding.y);
+        rt.offsetMax = new Vector2(-padding.z, -padding.w);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = sprite;
+        img.raycastTarget = false;
+        img.type = Image.Type.Filled;
+        img.fillMethod = Image.FillMethod.Horizontal;
+        img.fillOrigin = 0;
+        img.fillAmount = 1f;
+        return img;
+    }
+
+    private static TMP_Text Txt(Transform parent, string name, string text, float size, Vector2 anchor, Vector2 pos, Vector2 box, Color color, TextAlignmentOptions align, bool outline = false)
+    {
+        var rt = Rect(name, parent, anchor, pos, box);
+        var t = rt.gameObject.AddComponent<TextMeshProUGUI>();
+        t.font = outline ? fontOutline : fontRegular;
+        t.text = text;
+        t.fontSize = size;
+        t.color = color;
+        t.alignment = align;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.overflowMode = TextOverflowModes.Overflow;
+        t.raycastTarget = false;
+        return t;
+    }
+
+    private static Button Btn(Transform parent, string name, Sprite sprite, Vector2 anchor, Vector2 pos, Vector2 size, string label, float labelSize, UnityAction action)
+    {
+        var img = Img(parent, name, sprite, anchor, pos, Color.white, size);
+        img.raycastTarget = true;
+        var btn = img.gameObject.AddComponent<Button>();
+        btn.targetGraphic = img;
+        img.gameObject.AddComponent<UIButtonFeedback>();
+
+        if (!string.IsNullOrEmpty(label))
+            Txt(img.transform, "Label", label, labelSize, new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), size, TextWhite, TextAlignmentOptions.Center, true);
+
+        if (action != null)
+            UnityEventTools.AddPersistentListener(btn.onClick, action);
+        return btn;
+    }
+
+    #endregion
+}
+#endif

@@ -1442,6 +1442,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StandardEnemy
   maxHealth: 70
+  coinReward: 1
   minX: -3.5
   maxX: 3.5
   animator: {fileID: 595618697696151976}
@@ -1454,6 +1455,22 @@ MonoBehaviour:
   - Walk4
   - Walk5
   - Walk6
+  useRootMotion: 1
+  animSpeedRange: {x: 0.9, y: 1.12}
+  swayAmplitude: 0.35
+  swayFrequency: 0.6
+  lurchAmount: 0.3
+  aggroDistance: 11
+  chaseChance: 0.35
+  chaseSpeed: 2.6
+  chaseAnimations:
+  - Run1
+  - Run2
+  - Run3
+  convergeStrength: 0.25
+  separationRadius: 0.85
+  separationStrength: 1.4
+  attackViewHalfWidth: 1
   hitReactions:
   - stateName: Hit1
     knockbackDistance: 1
@@ -1475,18 +1492,38 @@ MonoBehaviour:
     knockbackDistance: 1
     knockbackDuration: 1.2
     recoveryDelay: 1.5
+  hitReactionChance: 1
+  walkHitPrefix: WalkHit
+  runHitPrefix: RunHit
+  rootHitDuration: 1.1
   useDevHitReaction: 0
   devHitIndex: 0
   antiMergeRadius: 0.5
   enemyLayer:
     serializedVersion: 2
     m_Bits: 128
+  attackAnimations:
+  - Attack1
+  - Attack2
+  - Attack3
+  attackDamage: 6
+  attackInterval: 1.6
+  attackStopDistance: 0.7
+  attackSounds: []
+  standUpState: 
+  standUpDuration: 1.4
   hitSounds: []
   groanSounds: []
+  deathSounds: []
   minGroanInterval: 3
   maxGroanInterval: 7
+  hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
+  hitFlashDuration: 0.08
+  hitBloodVfx: {fileID: 0}
+  deathVfx: {fileID: 0}
   deathBackwardForce: 5
   deathUpwardLift: 2
+  corpseLifeTime: 2.5
 --- !u!114 &5077922241751305680
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2521,7 +2558,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3450472899535286164}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.09569965, y: -0, z: -0, w: -0.9954103}
+  m_LocalRotation: {x: -0.095699474, y: -0, z: -0, w: -0.9954103}
   m_LocalPosition: {x: -0, y: 0, z: 1.4199496e-31}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

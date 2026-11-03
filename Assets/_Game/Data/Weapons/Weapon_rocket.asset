@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cff9e7ca5df8164458cbd12ca4e76d13, type: 3}
+  m_Name: Weapon_rocket
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDataSO
+  weaponId: rocket
+  displayName: Rocket
+  description: Massive blast radius. Clears a crowd.
+  icon: {fileID: 21300000, guid: cb1a8a371faf0d648b9e28000732e501, type: 3}
+  themeColor: {r: 1, g: 0.35, b: 0.3, a: 1}
+  unlockLevel: 6
+  weaponPrefab: {fileID: 1402433021160461889, guid: 771844a3c11857a499aa25de180428cf, type: 3}
+  spawnInterval: 0.28
+  minDistanceBetween: 0.7
+  maxCount: 3
+  spawnScale: 1
+  launchSpeed: 20
+  useGravity: 0
+  gravity: 12
+  launchUpAngle: 0
+  spinAxis: {x: 1, y: 0, z: 0}
+  spinSpeed: 0
+  useVisualEulers: 0
+  drawnVisualEuler: {x: 0, y: 0, z: -90}
+  flightVisualEuler: {x: 90, y: 0, z: 0}
+  alignToVelocity: 1
+  lifeTime: 3
+  hitRadius: 0.3
+  damage: 0
+  pierceCount: 0
+  explosionRadius: 3
+  explosionDamage: 200
+  impactForce: 42
+  chainCount: 0
+  chainRadius: 4
+  chainDamageFactor: 0.7
+  chainLineMaterial: {fileID: 0}
+  fireZoneDuration: 0
+  fireZoneRadius: 2
+  fireZoneDps: 30
+  fireZoneVfx: {fileID: 0}
+  minRange: 6
+  maxRange: 22
+  spawnVfx: {fileID: 0}
+  hitVfx: {fileID: 0}
+  explosionVfx: {fileID: 8441779649053066691, guid: 910e98b051b31504eb33ea1d850ef581, type: 3}
+  launchSounds:
+  - {fileID: 8300000, guid: 7f60c2e8183eb524ca83f5d800cc93fb, type: 3}
+  - {fileID: 8300000, guid: a2d5c6cfafb505c4d9cef4a37e245e8d, type: 3}
+  hitSounds: []
+  explosionSounds:
+  - {fileID: 8300000, guid: fafc499d351e2f743b21ed2265bee75d, type: 3}
+  - {fileID: 8300000, guid: 16b311057cd97d4489e90f76188ac18f, type: 3}
+  - {fileID: 8300000, guid: 798b37d2cbb3d2a4c846070c319ce1f7, type: 3}
+  - {fileID: 8300000, guid: ecda61556b5ff5742b6a89f6e0596cd5, type: 3}
+  cameraShake: 0.3
