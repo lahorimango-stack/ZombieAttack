@@ -43,6 +43,12 @@ MonoBehaviour:
   explosionRadius: 0
   explosionDamage: 0
   impactForce: 20
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

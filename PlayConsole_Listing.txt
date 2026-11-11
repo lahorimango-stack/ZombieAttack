@@ -33,10 +33,11 @@ HOW TO PLAY
 • Kill every zombie before your health runs out
 
 10 LEVELS, 10 BATTLEGROUNDS
-Fight from a quiet street to a burning hell gate. Each level has its own place, props and wave design. Difficulty rises and falls, so tense battles are followed by a moment to breathe.
+Fight from a quiet street to a burning hell gate. Each level has its own place, sky, weather and enemy mix: a crawling night, a hound hunt, a thunderstorm, a toxic zone and more. Difficulty rises and falls, so tense battles are followed by a moment to breathe.
 
 ZOMBIES THAT KEEP YOU MOVING
 • Runners sprint straight at you
+• Zombie dogs hunt in fast, low packs
 • Crawlers come in low, then stand up
 • Bombers explode, so kill them from far away
 • Brutes take a lot of punishment
@@ -44,7 +45,7 @@ ZOMBIES THAT KEEP YOU MOVING
 • Final boss: King of the Dead
 
 6 WEAPONS TO UNLOCK
-Knife, Axe, Crystal Spear, Grenade, Fire Bomb and Rocket. Each one has its own damage, speed and area.
+Knife, Axe, Crystal Spear, Grenade, Ripper Blade and Rocket. The Ripper Blade slices a zombie and bounces to the next one. Each weapon has its own damage, speed and area.
 
 USE THE STREET
 Shoot explosive barrels and cars to wipe out whole groups in one blast.
@@ -104,6 +105,8 @@ LICENSES - yeh sab aap ke apne Asset Store "My Assets" mein hon:
 [ ] StudioNewPunch zombies
 [ ] Zombie MoCap
 [ ] Universal Sound FX
+[ ] Zombie Dog model (Assets/zombie-dog-animation) - Sketchfab jaisa folder; license aur credit (CC-BY ho to naam dena zaroori) check karein
+[ ] Polygon Arsenal (Ripper Blade ka shuriken model)
 
 SOURCE CONFIRM KAREIN (warna badal dein):
 [ ] hand.png (tutorial ka haath)

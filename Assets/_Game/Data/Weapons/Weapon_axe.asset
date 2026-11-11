@@ -17,7 +17,7 @@ MonoBehaviour:
   description: Heavy spinning axe. Cuts through 2 zombies!
   icon: {fileID: 21300000, guid: 25bc78f0f4df0cf40887c079b970d2b4, type: 3}
   themeColor: {r: 1, g: 0.75, b: 0.35, a: 1}
-  unlockLevel: 1
+  unlockLevel: 2
   weaponPrefab: {fileID: 8497904136666207487, guid: 03c9a88092e6af0459f9776f668a799f, type: 3}
   spawnInterval: 0.13
   minDistanceBetween: 0.4
@@ -43,6 +43,12 @@ MonoBehaviour:
   explosionRadius: 0
   explosionDamage: 0
   impactForce: 30
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

@@ -17,12 +17,9 @@ public static class Explosions
                                 GameObject vfx = null, AudioClip[] sounds = null, float cameraShake = 0.2f,
                                 float playerDamageRadius = 0f, float playerDamage = 0f)
     {
-        if (vfx != null)
-        {
-            var fx = Object.Instantiate(vfx, point, Quaternion.identity);
-            Object.Destroy(fx, 4f);
-        }
-        SoundManager.Instance?.PlayRandomSFX(sounds, 0.9f, 1.1f, 1f);
+        // Pool se (naya Instantiate nahi). Bilkul paas wahi dhamaka abhi hua ho to VFX/awaaz dobara nahi - damage phir bhi lagta hai
+        bool shown = vfx == null || VfxPool.Play(vfx, point, Quaternion.identity, 4f);
+        if (shown) SoundManager.Instance?.PlayRandomSFX(sounds, 0.9f, 1.1f, 1f);
         GameManager.Instance?.TriggerHeavyHaptic();
         if (cameraShake > 0f)
             GameManager.Instance?.WeaponController?.Shake(cameraShake, 0.4f);

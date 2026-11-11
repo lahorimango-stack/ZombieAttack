@@ -17,7 +17,7 @@ MonoBehaviour:
   description: Lob it over the horde. BOOM!
   icon: {fileID: 21300000, guid: 1967b1992e0c4e54fb5e13ffc6fedfed, type: 3}
   themeColor: {r: 0.6, g: 1, b: 0.4, a: 1}
-  unlockLevel: 3
+  unlockLevel: 6
   weaponPrefab: {fileID: 3609328019635032496, guid: 76e38759fe0a2f1429cd024158e437e4, type: 3}
   spawnInterval: 0.2
   minDistanceBetween: 0.55
@@ -43,6 +43,12 @@ MonoBehaviour:
   explosionRadius: 2.4
   explosionDamage: 120
   impactForce: 34
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

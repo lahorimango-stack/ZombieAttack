@@ -66,6 +66,21 @@ public class WeaponDataSO : ScriptableObject
     [Tooltip("Death par ragdoll ko kitna zor ka dhakka lage")]
     public float impactForce = 22f;
 
+    [Header("--- 4b. Aim Assist ---")]
+    [Tooltip("Weapon ki seedh se itna (meters) side tak ka zombie 'pakad' leta hai aur halka sa us taraf mudta hai. 0 = band")]
+    public float aimAssistRadius = 0.6f;
+    [Tooltip("Mudne ki raftar (degree/second)")]
+    public float aimAssistTurnRate = 38f;
+
+    [Header("--- 5a. Ricochet (Ripper Blade) ---")]
+    [Tooltip("Zombie ko kaat kar kitne aur zombies par uchhal kar jaye (0 = off)")]
+    public int ricochetCount = 0;
+    [Tooltip("Agla zombie kitni door tak dhoonde (meters)")]
+    public float ricochetRange = 7f;
+    [Tooltip("Har uchhaal par damage ka hissa (1 = poora)")]
+    [Range(0.3f, 1f)] public float ricochetDamageFactor = 0.85f;
+    public AudioClip[] ricochetSounds;
+
     [Header("--- 5b. Chain Lightning ---")]
     [Tooltip("Hit ke baad kitne aur zombies tak bijli jaye (0 = off)")]
     public int chainCount = 0;

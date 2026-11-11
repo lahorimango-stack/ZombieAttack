@@ -133,14 +133,20 @@ public class WeaponFormationController : MonoBehaviour
             slowMoVolume.weight = drawSlowMoScale < 0.99f ? Mathf.InverseLerp(1f, drawSlowMoScale, slowMo) : 0f;
     }
 
+    /// <summary> End cinematic camera khud chalata hai - is dauran pan/zoom/shake band </summary>
+    public bool CinematicLock { get; set; }
+
     void LateUpdate()
     {
+        if (CinematicLock) return;
         UpdateCameraTransform();
     }
 
     public void SetInputEnabled(bool state)
     {
         inputEnabled = state;
+        // Level shuru: is weapon ka dhamaka pehle se tayyar (pehle grenade par bhi FPS jhatka nahi)
+        if (state) { var w = GetTargetWeapon(); if (w != null) VfxPool.Prewarm(w.explosionVfx, Mathf.Min(4, w.maxCount)); }
         if (!state)
         {
             if (isDragging)

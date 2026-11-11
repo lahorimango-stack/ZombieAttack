@@ -33,7 +33,8 @@ public static partial class ZombieGameBuilder
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080f, 1920f);
-        scaler.matchWidthOrHeight = 0.35f;
+        scaler.matchWidthOrHeight = 0f;
+        canvasGo.AddComponent<AdaptiveCanvasScaler>(); // har screen par poora design andar (QA: cropping)
 
         new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
@@ -261,12 +262,21 @@ public static partial class ZombieGameBuilder
         flash.enabled = false;
         Set(kc, "flashImage", flash);
 
-        // Level ke aakhir ka cinematic slow-mo (wahi letterbox pattiyan)
-        var endTitle = Txt(lb, "EndTitle", "LEVEL CLEARED", 118f, new Vector2(0.5f, 0.5f), new Vector2(0f, 230f), new Vector2(1400f, 160f), TextYellow, TextAlignmentOptions.Center, true);
-        var endSub = Txt(lb, "EndSubtitle", "32 ZOMBIES DOWN", 44f, new Vector2(0.5f, 0.5f), new Vector2(0f, 130f), new Vector2(1200f, 70f), TextWhite, TextAlignmentOptions.Center, true);
-        endSub.characterSpacing = 12f;
-        endTitle.gameObject.SetActive(false);
-        endSub.gameObject.SetActive(false);
+        // Level ke aakhir ka cinematic (camera crane / girna) + side se aane wali patli patti
+        // Andhera panels ke NEECHE (fail panel saaf dikhe), game ke upar
+        var fade = Img(canvasRoot, "EndFade", null, new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0f));
+        StretchFull(fade.rectTransform);
+        fade.transform.SetSiblingIndex(2);
+        fade.enabled = false;
+        // Patti screen ki poori chaurai (har phone par text andar)
+        var band = Img(lb, "EndBand", UISprite("Background_ScreenDimed_Black"), new Vector2(0.5f, 0.5f), new Vector2(0f, 300f), new Color(1f, 1f, 1f, 0.92f), new Vector2(1080f, 190f));
+        band.rectTransform.anchorMin = new Vector2(0f, 0.5f); band.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+        band.rectTransform.sizeDelta = new Vector2(0f, 190f); band.rectTransform.anchoredPosition = new Vector2(0f, 300f);
+        var accent = Img(band.transform, "Accent", null, new Vector2(0f, 0.5f), new Vector2(64f, 0f), TextYellow, new Vector2(14f, 130f));
+        var endTitle = Txt(band.transform, "Title", "AREA CLEARED", 86f, new Vector2(0f, 0.5f), new Vector2(460f, 22f), new Vector2(760f, 100f), TextWhite, TextAlignmentOptions.Left, true);
+        var endSub = Txt(band.transform, "Sub", "32 ZOMBIES DOWN", 36f, new Vector2(0f, 0.5f), new Vector2(460f, -48f), new Vector2(760f, 50f), new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left, false);
+        endSub.characterSpacing = 8f;
+        band.gameObject.SetActive(false);
         var end = lb.gameObject.AddComponent<EndSlowMo>();
         Set(end, "mainCamera", builtMainCamera);
         Set(end, "winVolume", builtWinVolume);
@@ -274,12 +284,15 @@ public static partial class ZombieGameBuilder
         Set(end, "hudGroup", builtHudGroup);
         Set(end, "letterboxTop", top.rectTransform);
         Set(end, "letterboxBottom", bottom.rectTransform);
+        Set(end, "band", band.rectTransform);
+        Set(end, "bandAccent", accent);
         Set(end, "titleText", endTitle);
         Set(end, "subtitleText", endSub);
+        Set(end, "fadeImage", fade);
         Set(end, "musicSource", builtMusicSource);
         Set(end, "slowSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Start")));
         Set(end, "resumeSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Stop")));
-        Set(kc, "obstacleMask", (1 << 0) | (1 << LayerGround));
+        Set(end, "fallSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "THUD_Deep")));        Set(kc, "obstacleMask", (1 << 0) | (1 << LayerGround));
     }
 
     private static AudioClip FirstClip(AudioClip[] clips) => clips != null && clips.Length > 0 ? clips[0] : null;
@@ -344,9 +357,10 @@ public static partial class ZombieGameBuilder
         StretchFull(hud);
 
         // Thoda right: "LEVEL 10  WAVE 3/4" coins ke counter se na takraye
-        var levelText = Txt(hud, "LevelText", "LEVEL 1", 54f, new Vector2(0.5f, 1f), new Vector2(60f, -75f), new Vector2(560f, 90f), TextWhite, TextAlignmentOptions.Center, true);
+        // Coins (baayen) aur pause (daayen) ke beech hi - lambe phone par coins ke upar na chadhe (QA)
+        var levelText = Txt(hud, "LevelText", "LEVEL 1", 54f, new Vector2(0.5f, 1f), new Vector2(75f, -75f), new Vector2(390f, 84f), TextWhite, TextAlignmentOptions.Center, true);
         levelText.enableAutoSizing = true;
-        levelText.fontSizeMin = 34f;
+        levelText.fontSizeMin = 26f;
         levelText.fontSizeMax = 54f;
 
         // Kills progress

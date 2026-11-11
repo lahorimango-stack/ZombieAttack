@@ -118,6 +118,99 @@ public static partial class ZombieGameBuilder
         Debug.Log($"[Builder] Android texture overrides set on {changed} textures.");
     }
 
+    /// <summary>
+    /// Quality gire bagair build size kam:
+    ///  - MoCap animations ka compression (pehle Off tha - sab se bara bojh)
+    ///  - Zombie ki metallic/AO/mask maps chhoti (screen par zombie chhota - farq nazar nahi aata),
+    ///    albedo aur normal wahi sharp resolution
+    ///  - Sound effects 22 kHz (mobile speaker par farq nahi), music wahi
+    ///  - Code stripping (na istemal hone wala engine/C# code build se bahar)
+    /// </summary>
+    [MenuItem("ZombieAttack/Tools/Optimize Build Size (No Quality Loss)", priority = 104)]
+    public static string OptimizeBuildSize()
+    {
+        int anims = 0, texs = 0, auds = 0;
+        AssetDatabase.StartAssetEditing();
+        try
+        {
+            // 1. Animations: Optimal compression (keyframe reduction) - aankh ko farq nahi
+            foreach (string folder in new[] { "Assets/ThirdParty/ZombieMoCap", "Assets/StudioNewPunch", "Assets/zombie-dog-animation" })
+            {
+                if (!AssetDatabase.IsValidFolder(folder)) continue;
+                foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { folder }))
+                {
+                    var mi = AssetImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guid)) as ModelImporter;
+                    if (mi == null || !mi.importAnimation) continue;
+                    if (mi.animationCompression == ModelImporterAnimationCompression.Optimal && mi.resampleCurves) continue;
+                    mi.animationCompression = ModelImporterAnimationCompression.Optimal;
+                    mi.animationRotationError = 0.5f;
+                    mi.animationPositionError = 0.5f;
+                    mi.animationScaleError = 0.5f;
+                    mi.resampleCurves = true;
+                    mi.SaveAndReimport();
+                    anims++;
+                }
+            }
+
+            // 2. Textures: sirf "data" maps chhoti (metallic, smoothness, AO, mask). Albedo/normal ka resolution wahi
+            var dataMap = new System.Text.RegularExpressions.Regex("(?i)(metallic|smoothness|_ao|occlusion|_mat\\.|_mask|height|rough)");
+            var normalMap = new System.Text.RegularExpressions.Regex("(?i)(normal|_n\\.)");
+            foreach (var (folder, dataMax) in new[] { ("Assets/StudioNewPunch", 512), ("Assets/ThirdParty/Quantum Theory", 1024), ("Assets/ThirdParty/FPS Shooting Environment", 512), ("Assets/ThirdParty/FORGE3D", 512) })
+            {
+                if (!AssetDatabase.IsValidFolder(folder)) continue;
+                foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { folder }))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (imp == null || imp.textureType == TextureImporterType.Sprite) continue;
+                    string file = System.IO.Path.GetFileName(path);
+                    var s = imp.GetPlatformTextureSettings("Android");
+                    if (!s.overridden) continue; // ConfigureAndroidTextures pehle chalna chahiye
+                    int max = s.maxTextureSize; var fmt = s.format;
+                    // Sadak/poles ke data maps door se dikhte hain - QT mein sirf poles ki maps chhoti
+                    bool qtPoles = folder.Contains("Quantum") && file.Contains("Poles");
+                    if (dataMap.IsMatch(file) || qtPoles) { max = Mathf.Min(max, dataMax); fmt = TextureImporterFormat.ASTC_6x6; }
+                    else if (normalMap.IsMatch(file)) fmt = TextureImporterFormat.ASTC_6x6; // normal: wahi resolution, block thoda bara
+                    if (max == s.maxTextureSize && fmt == s.format) continue;
+                    s.maxTextureSize = max; s.format = fmt;
+                    imp.SetPlatformTextureSettings(s);
+                    imp.SaveAndReimport();
+                    texs++;
+                }
+            }
+
+            // 3. Sound effects: 22 kHz Vorbis (music/ambience ko nahi chhera)
+            foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { "Assets/Audio" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.Contains("/Music/")) continue;
+                var ai = AssetImporter.GetAtPath(path) as AudioImporter;
+                if (ai == null) continue;
+                var s = ai.GetOverrideSampleSettings("Android");
+                if (ai.ContainsSampleSettingsOverride("Android") && s.sampleRateSetting == AudioSampleRateSetting.OverrideSampleRate && s.sampleRateOverride == 22050) continue;
+                if (!ai.ContainsSampleSettingsOverride("Android")) s = ai.defaultSampleSettings;
+                s.sampleRateSetting = AudioSampleRateSetting.OverrideSampleRate;
+                s.sampleRateOverride = 22050;
+                if (s.compressionFormat == AudioCompressionFormat.PCM) s.compressionFormat = AudioCompressionFormat.Vorbis;
+                ai.SetOverrideSampleSettings("Android", s);
+                ai.SaveAndReimport();
+                auds++;
+            }
+        }
+        finally
+        {
+            AssetDatabase.StopAssetEditing();
+        }
+
+        // 4. Code stripping
+        PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.Android, ManagedStrippingLevel.Medium);
+        PlayerSettings.stripEngineCode = true;
+        AssetDatabase.SaveAssets();
+        string msg = $"[Builder] Size optimize: {anims} animation files, {texs} textures, {auds} sounds";
+        Debug.Log(msg);
+        return msg;
+    }
+
     /// <summary> MSAA 4x + full render scale: jagged edges aur blur khatam </summary>
     private static void ConfigureRenderQuality()
     {

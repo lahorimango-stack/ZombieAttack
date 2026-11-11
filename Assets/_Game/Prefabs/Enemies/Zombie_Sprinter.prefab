@@ -675,6 +675,7 @@ MonoBehaviour:
   alwaysVisible: 0
   visibleTime: 2.2
   headOffset: 0.3
+  headBone: {fileID: 0}
 --- !u!1 &1102246643592360727
 GameObject:
   m_ObjectHideFlags: 0
@@ -2135,7 +2136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54aff239772c84e4b9a71e5bc199c920, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StandardEnemy
-  maxHealth: 45
+  maxHealth: 60
   coinReward: 3
   minX: -3.5
   maxX: 3.5
@@ -2196,8 +2197,8 @@ MonoBehaviour:
   - HyperAttack2
   - HyperAttack3
   - HyperAttack4
-  attackDamage: 4
-  attackInterval: 1.1
+  attackDamage: 5
+  attackInterval: 1.05
   attackStopDistance: 0.55
   attackSounds:
   - {fileID: 8300000, guid: 1fb50a4d8c684ae4f86cf40ba4d257a9, type: 3}
@@ -2247,6 +2248,7 @@ MonoBehaviour:
   deathBackwardForce: 22
   deathUpwardLift: 7
   corpseLifeTime: 2.5
+  chestHeight: 1.1
 --- !u!1 &4720918159426316163
 GameObject:
   m_ObjectHideFlags: 0

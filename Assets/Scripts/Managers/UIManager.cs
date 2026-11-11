@@ -230,14 +230,20 @@ public class UIManager : MonoBehaviour
         if (barricadeText != null) barricadeText.text = $"{Mathf.CeilToInt(percent * 100f)}%";
     }
 
-    public void ShowWaveBanner(int wave, int totalWaves, bool isFinal, bool isBoss)
+    /// <summary> Level ki pehli wave: level ka naam + us ki pehchaan (har level alag mehsoos ho) </summary>
+    public void ShowLevelIntro(string levelName, string subtitle, bool isBoss)
+    {
+        ShowWaveBanner(1, 1, false, isBoss, levelName.ToUpper(), subtitle);
+    }
+
+    public void ShowWaveBanner(int wave, int totalWaves, bool isFinal, bool isBoss, string customTitle = null, string customSub = null)
     {
         if (waveBanner == null) return;
 
         if (waveBannerText != null)
-            waveBannerText.text = isBoss ? "BOSS INCOMING!" : (isFinal ? "FINAL WAVE!" : $"WAVE {wave}/{totalWaves}");
+            waveBannerText.text = customTitle ?? (isBoss ? "BOSS INCOMING!" : (isFinal ? "FINAL WAVE!" : $"WAVE {wave}/{totalWaves}"));
         if (waveBannerSubText != null)
-            waveBannerSubText.text = isBoss ? "Bring everything you've got" : (isFinal ? "Hold the line!" : "Zombies are coming...");
+            waveBannerSubText.text = customSub ?? (isBoss ? "Bring everything you've got" : (isFinal ? "Hold the line!" : "Zombies are coming..."));
         if (waveBannerBackground != null)
         {
             Sprite s = (isFinal || isBoss) ? dangerBannerSprite : normalBannerSprite;

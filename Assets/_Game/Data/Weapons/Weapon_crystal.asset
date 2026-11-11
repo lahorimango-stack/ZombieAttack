@@ -17,7 +17,7 @@ MonoBehaviour:
   description: Ice crystals that pierce 3 zombies in a row.
   icon: {fileID: 21300000, guid: a6fda7064af3f7047afa8316968a44f0, type: 3}
   themeColor: {r: 0.45, g: 0.75, b: 1, a: 1}
-  unlockLevel: 2
+  unlockLevel: 4
   weaponPrefab: {fileID: 8492613542685010963, guid: 414398afdb4b31d4cbd96fdaccc9ab8d, type: 3}
   spawnInterval: 0.09
   minDistanceBetween: 0.3
@@ -43,6 +43,12 @@ MonoBehaviour:
   explosionRadius: 0
   explosionDamage: 0
   impactForce: 24
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

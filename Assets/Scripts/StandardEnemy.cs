@@ -485,7 +485,10 @@ public class StandardEnemy : HumanoidEnemy
         return Mathf.Max(0.15f, PlayerView.HalfWidthAt(z) - BodyMargin);
     }
 
-    private Vector3 ChestPoint => transform.position + Vector3.up * 1.1f * transform.lossyScale.y;
+    [Tooltip("Seene ki oonchai (meters, scale 1 par). Insaan 1.1, dog 0.5 - screen check, kill cam, numbers yahan")]
+    [SerializeField] protected float chestHeight = 1.1f;
+
+    private Vector3 ChestPoint => transform.position + Vector3.up * chestHeight * transform.lossyScale.y;
 
     private string CurrentMoveState => isChasing ? currentChaseState : currentActiveWalkState;
 
@@ -707,7 +710,9 @@ public class StandardEnemy : HumanoidEnemy
         DamagePopups.ShowKill(ChestPoint + Vector3.up * 0.5f * transform.lossyScale.y, coinReward);
         RaiseDied();
 
-        if (deathSounds != null && deathSounds.Length > 0)
+        // Ek frame mein bohat maut: sirf pehli 2 cheekhein (8 awaazein ek saath = shor + CPU)
+        bool fewDeaths = Time.frameCount != deathFrame || deathsThisFrame < 2;
+        if (fewDeaths && deathSounds != null && deathSounds.Length > 0)
             Play3DSound(deathSounds[Random.Range(0, deathSounds.Length)]);
 
         // Grenade se 8 ek saath maren to 8 bade blood blast nahi (mobile)
@@ -720,7 +725,15 @@ public class StandardEnemy : HumanoidEnemy
 
         if (animator != null) animator.applyRootMotion = false;
 
-        if (ragdollController != null)
+        // Grenade se ek frame mein 8 maut: sab ragdolls ek saath physics mein = FPS jhatka. 3 se zyada ho to
+        // baaki agle frames mein (aankh ko farq nahi, CPU par bojh bant jata hai)
+        if (Time.frameCount != deathFrame) { deathFrame = Time.frameCount; deathsThisFrame = 0; }
+        int wait = deathsThisFrame++ / 3;
+        if (ragdollController != null && wait > 0)
+        {
+            StartCoroutine(DelayedRagdoll(wait, hitPoint, impulse));
+        }
+        else if (ragdollController != null)
         {
             ragdollController.ActivateRagdoll();
 
@@ -732,6 +745,17 @@ public class StandardEnemy : HumanoidEnemy
         }
 
         StartCoroutine(SinkAndDestroy(corpseLifeTime));
+    }
+
+    private static int deathFrame = -1, deathsThisFrame;
+
+    private IEnumerator DelayedRagdoll(int frames, Vector3 hitPoint, Vector3 impulse)
+    {
+        for (int i = 0; i < frames; i++) yield return null;
+        ragdollController.ActivateRagdoll();
+        Vector3 force = impulse.sqrMagnitude > 1f ? impulse : new Vector3(0f, 0f, deathBackwardForce);
+        force += Vector3.up * deathUpwardLift;
+        ragdollController.ApplyImpactAtPoint(force, hitPoint, Mathf.Lerp(0.2f, 0.55f, Mathf.InverseLerp(18f, 40f, impulse.magnitude)));
     }
 
     private IEnumerator HitFlash()

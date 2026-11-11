@@ -195,6 +195,7 @@ public static partial class ZombieGameBuilder
         {
             var r = (GameObject)PrefabUtility.InstantiatePrefab(rain, camGo.transform);
             r.name = "Rain";
+            builtRain = r.GetComponentInChildren<ParticleSystem>(true); // (Unity objects par ?? nahi)
             r.transform.localPosition = new Vector3(0f, 5f, 9f);
             r.transform.localRotation = Quaternion.identity;
         }
@@ -401,6 +402,7 @@ public static partial class ZombieGameBuilder
         var moonGo = new GameObject("Moon Light");
         moonGo.transform.rotation = Quaternion.Euler(38f, -28f, 0f);
         var moon = moonGo.AddComponent<Light>();
+        builtMoon = moon;
         moon.type = LightType.Directional;
         moon.color = new Color(0.62f, 0.7f, 0.95f);
         moon.intensity = 1.8f;
@@ -713,6 +715,7 @@ public static partial class ZombieGameBuilder
 
         // L1: khamosh street - police jersey barriers, thodi aag
         var l1 = NewEnvB(env, BlkJersey, "Level 1 - Quiet Street", new Color(0.15f, 0.18f, 0.26f), 11f, 46f, new Color(0.48f, 0.53f, 0.74f));
+        Atmos(l1, SkyNight, new Color(0.5f, 0.6f, 0.9f, 0.5f), 0.36f, new Color(0.62f, 0.7f, 0.95f), 1.8f, 1f, false, new Color(0.93f, 0.97f, 1f), 0f, 0f); // thandi chandni, halki baarish
         AddFireBarrel(l1, new Vector3(-3.7f, 0f, nz));
         AddFireBarrel(l1, new Vector3(5.5f, 0f, 28f));
         Place(FPS + "Crate Boxes.prefab", l1, new Vector3(-6.4f, 0f, 29f), 25f, 1.1f);
@@ -722,6 +725,7 @@ public static partial class ZombieGameBuilder
 
         // L2: jalti gaadiyan (blockade khud jalti gaadiyon ka hai)
         var l2 = NewEnvB(env, BlkBurningCars, "Level 2 - Burning Cars", new Color(0.2f, 0.15f, 0.14f), 10f, 42f, new Color(0.56f, 0.44f, 0.42f));
+        Atmos(l2, SkySunset, new Color(0.95f, 0.55f, 0.4f, 0.5f), 0.3f, new Color(1f, 0.66f, 0.42f), 2f, 0f, false, new Color(1f, 0.88f, 0.76f), -5f, 6f, 60f, 20f); // dhuein wali jalti shaam
         AddBurningCar(l2, new Vector3(6.6f, 0f, 28f), -160f);
         AddExplosiveCar(l2, 1, 12.6f, 82f); // shoot karo: gaadi phat kar gap ke zombies uda deti hai
         Place(FPS + "Tyre.prefab", l2, new Vector3(-3.8f, 0f, nz - 0.3f), 30f, 0.45f);
@@ -731,6 +735,7 @@ public static partial class ZombieGameBuilder
 
         // L3: construction site - light tower, floodlight, crates
         var l3 = NewEnvB(env, BlkConstruction, "Level 3 - Construction Site", new Color(0.17f, 0.16f, 0.13f), 10f, 44f, new Color(0.55f, 0.52f, 0.45f));
+        Atmos(l3, SkyMoon, new Color(0.7f, 0.74f, 0.8f, 0.5f), 0.3f, new Color(0.85f, 0.85f, 0.8f), 1.4f, 0.4f, false, new Color(0.95f, 0.95f, 0.92f), -22f, 10f); // dhundli boondabandi - kutton ki raat
         var tower = Place(FPS + "Lights Gen.prefab", l3, new Vector3(-6.6f, 0f, 27f), 20f, 6.5f);
         if (tower != null) AddPointLight(l3, new Vector3(-5.8f, 5.8f, 26.5f), new Color(1f, 0.93f, 0.8f), 9f, 20f, null);
         var flood = Place(FPS + "FL Stand Leg low5.prefab", l3, new Vector3(3.9f, 0f, nz), -30f, 3.2f);
@@ -742,6 +747,7 @@ public static partial class ZombieGameBuilder
 
         // L4: military checkpoint (sandbags, hesco, laal alarm)
         var l4 = NewEnvB(env, BlkMilitary, "Level 4 - Checkpoint", new Color(0.14f, 0.17f, 0.21f), 10f, 42f, new Color(0.44f, 0.5f, 0.62f));
+        Atmos(l4, SkyNight, new Color(0.42f, 0.75f, 0.7f, 0.5f), 0.32f, new Color(0.55f, 0.9f, 0.82f), 1.5f, 0f, false, new Color(0.86f, 1f, 0.93f), -8f, 8f, -60f); // fauji chowki, sabz-neela
         Place(FPS + "Cargo Container.prefab", l4, new Vector3(-8.2f, 0f, 29f), 8f, 2.6f);
         Place(FPS + "Cargo Container 2.prefab", l4, new Vector3(8.4f, 0f, 30f), -12f, 2.6f);
         PlaceAcross(FPS + "Sand Bad V1.prefab", l4, -3.2f, -1, nz, 1f);
@@ -754,6 +760,7 @@ public static partial class ZombieGameBuilder
 
         // L5: MINI-BOSS - container yard (laal roshni, aag)
         var l5 = NewEnvB(env, BlkContainers, "Level 5 - Container Yard", new Color(0.24f, 0.12f, 0.1f), 9f, 40f, new Color(0.62f, 0.36f, 0.32f));
+        Atmos(l5, SkySunset, new Color(1f, 0.35f, 0.3f, 0.5f), 0.3f, new Color(1f, 0.45f, 0.35f), 1.3f, 0f, false, new Color(1f, 0.8f, 0.78f), -6f, 18f, 30f, 25f); // khooni aasmaan - BOSS
         Place(FPS + "Container Room.prefab", l5, new Vector3(-8.4f, 0f, 30f), 90f, 3f);
         Place(FPS + "Cargo Container 1.prefab", l5, new Vector3(8.6f, 0f, 29f), -8f, 2.8f);
         Place(FPS + "Crate Boxes.prefab", l5, new Vector3(-4.2f, 0f, nz), 15f, 1.1f);
@@ -763,6 +770,7 @@ public static partial class ZombieGameBuilder
 
         // L6: police line - laal/neeli beacons, barriers
         var l6 = NewEnvB(env, BlkPolice, "Level 6 - Police Line", new Color(0.1f, 0.12f, 0.2f), 10f, 44f, new Color(0.42f, 0.46f, 0.7f));
+        Atmos(l6, SkyNight, new Color(0.35f, 0.4f, 0.6f, 0.5f), 0.2f, new Color(0.6f, 0.68f, 0.95f), 1.2f, 2.2f, true, new Color(0.85f, 0.92f, 1.08f), -10f, 12f); // toofan: tez baarish + bijli
         AddExplosiveCar(l6, -1, 12.6f, -80f); // beacon iski chhat par
         PlaceAcross(FPS + "Barrier Big.prefab", l6, 3.2f, 1, nz - 0.1f, 1.05f);
         var beaconL = AddPointLight(l6, new Vector3(-3.6f, 1.7f, nz - 0.6f), new Color(1f, 0.08f, 0.05f), 4f, 7f, LightFlicker.FlickerStyle.Police);
@@ -778,6 +786,7 @@ public static partial class ZombieGameBuilder
 
         // L7: kabaar khana - tyres ke dher, jalti gaadi, dhuaan
         var l7 = NewEnvB(env, BlkJunkyard, "Level 7 - Junkyard", new Color(0.22f, 0.15f, 0.1f), 9f, 38f, new Color(0.6f, 0.45f, 0.36f));
+        Atmos(l7, SkySunset, new Color(1f, 0.82f, 0.72f, 0.5f), 0.45f, new Color(1f, 0.72f, 0.45f), 1.7f, 0f, false, new Color(1f, 0.93f, 0.82f), 6f, 8f, 75f, 15f); // dhalta suraj - kabaar khana
         Place(FPS + "Tyre v2.prefab", l7, new Vector3(-4.1f, 0f, nz), 20f, 1.4f);
         Place(FPS + "Tyre.prefab", l7, new Vector3(3.7f, 0f, nz + 0.2f), 60f, 0.45f);
         Place(FPS + "Crate Boxes.prefab", l7, new Vector3(4.5f, 0f, nz - 0.6f), -20f, 1.1f);
@@ -788,6 +797,7 @@ public static partial class ZombieGameBuilder
 
         // L8: zehreela ilaaqa - hari roshni, hesco, sandbags
         var l8 = NewEnvB(env, BlkToxic, "Level 8 - Toxic Zone", new Color(0.12f, 0.2f, 0.12f), 9f, 38f, new Color(0.4f, 0.6f, 0.4f));
+        Atmos(l8, SkyNight, new Color(0.5f, 0.9f, 0.5f, 0.5f), 0.3f, new Color(0.62f, 1f, 0.6f), 1.3f, 0.3f, false, new Color(0.86f, 1.05f, 0.86f), -12f, 12f); // zehreela sabz
         PlaceAcross(FPS + "HescoBarrier.prefab", l8, -3.2f, -1, nz, 1.4f);
         AddExplosiveCar(l8, 1, 12.6f, 86f);
         Place(FPS + "Cargo Container.prefab", l8, new Vector3(-8.2f, 0f, 29f), 5f, 2.6f);
@@ -798,6 +808,7 @@ public static partial class ZombieGameBuilder
 
         // L9: highway wreck - bara highway sign gantry, zig-zag barriers, gaadiyan
         var l9 = NewEnvB(env, BlkHighway, "Level 9 - Highway Wreck", new Color(0.16f, 0.17f, 0.2f), 8f, 36f, new Color(0.5f, 0.52f, 0.6f));
+        Atmos(l9, SkyMoon, new Color(0.8f, 0.85f, 0.95f, 0.5f), 0.5f, new Color(0.9f, 0.93f, 1f), 2f, 0.8f, false, new Color(0.95f, 0.97f, 1f), -28f, 14f, -10f, 30f); // safed dhund - highway
         Place(UCP + "Meshes/Traffic/Traffic-HwySign_SupportLarge.fbx", l9, new Vector3(0f, 0f, 27f), 0f, 8f);
         PlaceAcross(UCP + "Meshes/Props/Prop-JerseyBarrier4x1.fbx", l9, -3.2f, -1, nz, 1.05f, 0f, -8f);
         AddExplosiveCar(l9, 1, 12.6f, 78f);
@@ -807,6 +818,7 @@ public static partial class ZombieGameBuilder
 
         // L10: FINAL BOSS - jahannam ka darwaza (laal, aag har taraf)
         var l10 = NewEnvB(env, BlkHell, "Level 10 - Hell Gate", new Color(0.28f, 0.08f, 0.06f), 8f, 36f, new Color(0.7f, 0.28f, 0.24f));
+        Atmos(l10, SkySunset, new Color(1f, 0.25f, 0.15f, 0.5f), 0.35f, new Color(1f, 0.35f, 0.25f), 1.5f, 0f, false, new Color(1f, 0.76f, 0.7f), -4f, 22f, 0f, 22f); // jahannam - FINAL BOSS
         AddBurningCar(l10, new Vector3(-5.6f, 0f, nz - 0.2f), 80f);
         AddBurningCar(l10, new Vector3(6.6f, 0f, 28f), 200f);
         AddExplosiveCar(l10, 1, 12.6f, 84f);
@@ -1099,13 +1111,59 @@ public static partial class ZombieGameBuilder
         Set(e, "fogEnd", fogEnd);
         Set(e, "ambientSky", ambientSky);
         Set(e, "ambientEquator", ambientSky * 0.65f);
+        Set(e, "mainLight", builtMoon);
+        Set(e, "rain", builtRain);
+        Set(e, "skybox", AssetDatabase.LoadAssetAtPath<Material>(SkyNight));
+        Set(e, "thunderSounds", ClipsStartingWith("Assets/Audio/Game/Thunder", "THUNDER"));
         builtEnvironments.Add(e);
         return go.transform;
+    }
+
+    private static Light builtMoon;
+    private static ParticleSystem builtRain;
+    private const string SkyNight = "Assets/ThirdParty/FPS Shooting Environment/Materials/Skybox Materials/Night SkyBox.mat";
+    private const string SkySunset = "Assets/SkyBoxes/Deep Storm Sunset/Deep Storm Sunset Equirect.mat";
+    private const string SkyMoon = "Assets/SkyBoxes/Night MoonBurst/AllSky_Night_MoonBurst Equirect.mat";
+
+    /// <summary>
+    /// Level ka apna mahaul (har level alag dikhe): aasmaan + rang, roshni, baarish, toofan, aur apni color grading
+    /// </summary>
+    private static void Atmos(Transform env, string sky, Color tint, float exposure, Color light, float intensity, float rain, bool storm,
+                              Color filter, float saturation, float contrast, float lightYaw = -28f, float lightPitch = 38f)
+    {
+        var e = env.GetComponent<LevelEnvironment>();
+        Set(e, "skybox", AssetDatabase.LoadAssetAtPath<Material>(sky));
+        Set(e, "skyTint", tint);
+        Set(e, "skyExposure", exposure);
+        Set(e, "lightColor", light);
+        Set(e, "lightIntensity", intensity);
+        Set(e, "lightEuler", new Vector3(lightPitch, lightYaw, 0f));
+        Set(e, "rainAmount", rain);
+        Set(e, "lightning", storm);
+
+        // Apni color grading (child Volume - level band to grading bhi band)
+        string path = GameRoot + "/Settings/Grade_" + env.name.Split(' ')[1] + ".asset";
+        var prof = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+        if (prof == null) { prof = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(prof, path); }
+        foreach (var comp in prof.components.ToList()) { prof.Remove(comp.GetType()); Object.DestroyImmediate(comp, true); }
+        var ca = prof.Add<ColorAdjustments>(true);
+        ca.colorFilter.Override(filter); ca.saturation.Override(saturation); ca.contrast.Override(contrast);
+        foreach (var comp in prof.components) AssetDatabase.AddObjectToAsset(comp, prof);
+        EditorUtility.SetDirty(prof);
+        var go = new GameObject("Level Grade");
+        go.transform.SetParent(env, false);
+        var v = go.AddComponent<Volume>();
+        v.isGlobal = true; v.priority = 2f; v.weight = 1f; v.sharedProfile = prof;
     }
 
     private static void AddBarrel(Transform parent, GameObject prefab, Vector3 pos)
     {
         if (prefab == null) return;
+        // Zombie lane (|x| <= 2.4) se bahar aur gate (z 14.5) se door: zombie par chalaya weapon drum ko
+        // ghalti se na lage (QA). Phir bhi lane ke itna qareeb ke dhamaka lane ko cover kare
+        float side = Mathf.Sign(pos.x == 0f ? 1f : pos.x);
+        pos.x = side * 2.7f;
+        pos.z = 9.1f + (pos.z - 5.5f) * 0.32f; // 9.1 .. ~11.2 (gaadi z 11.6+ se pehle)
         var b = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         b.transform.position = pos;
         b.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);

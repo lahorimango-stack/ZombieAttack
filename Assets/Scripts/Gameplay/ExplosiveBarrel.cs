@@ -45,6 +45,8 @@ public class ExplosiveBarrel : MonoBehaviour, IDamageable
         Explosions.Detonate(p, radius, damage, force, damageMask, explosionVfx, explosionSounds, 0.35f);
     }
 
+    public void PrewarmVfx() => VfxPool.Prewarm(explosionVfx, 2);
+
     /// <summary> Level restart par barrel wapis </summary>
     public void ResetBarrel()
     {

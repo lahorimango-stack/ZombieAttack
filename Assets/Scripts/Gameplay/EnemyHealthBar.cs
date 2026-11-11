@@ -18,6 +18,8 @@ public class EnemyHealthBar : MonoBehaviour
     [SerializeField] private float visibleTime = 2.2f;
     [Tooltip("Sar ki haddi se kitna upar (meters, zombie ke scale ke saath)")]
     [SerializeField] private float headOffset = 0.3f;
+    [Tooltip("Generic rig (dog) ki sar ki haddi - humanoid mein khud mil jati hai")]
+    [SerializeField] private Transform headBone;
 
     private Transform head;
     private Transform root;
@@ -31,6 +33,7 @@ public class EnemyHealthBar : MonoBehaviour
         root = enemy != null ? enemy.transform : transform.parent;
         var anim = root != null ? root.GetComponentInChildren<Animator>() : null;
         if (anim != null && anim.isHuman) head = anim.GetBoneTransform(HumanBodyBones.Head);
+        if (head == null) head = headBone;
         group = GetComponent<CanvasGroup>();
         if (barCanvas != null) barCanvas.enabled = alwaysVisible;
     }

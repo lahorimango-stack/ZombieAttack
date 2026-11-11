@@ -1810,6 +1810,7 @@ MonoBehaviour:
   deathBackwardForce: 10
   deathUpwardLift: 4
   corpseLifeTime: 2.5
+  chestHeight: 1.1
 --- !u!1 &3800827707837924742
 GameObject:
   m_ObjectHideFlags: 0

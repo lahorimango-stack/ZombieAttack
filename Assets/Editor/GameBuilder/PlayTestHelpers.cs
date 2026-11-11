@@ -107,6 +107,48 @@ public static class PlayTestHelpers
         return "at " + p;
     }
 
+    public static string SpawnDogs()
+    {
+        var p = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/Enemies/Zombie_Dog.prefab");
+        if (p == null) return "no dog prefab";
+        for (int i = 0; i < 3; i++)
+        {
+            var go = Object.Instantiate(p, new Vector3(-0.8f + i * 0.8f, 0f, 7f + i * 1.2f), Quaternion.Euler(0f, 180f, 0f));
+            go.name = "CLOSE_Dog" + i;
+        }
+        return "dogs";
+    }
+
+    public static string KillDogs()
+    {
+        int n = 0;
+        foreach (var e in Object.FindObjectsByType<StandardEnemy>())
+            if (e.name.StartsWith("CLOSE_Dog") && !e.IsDead) { e.TakeDamage(999f, e.transform.position + Vector3.up * 0.6f, Vector3.forward * 20f); n++; }
+        return "killed " + n;
+    }
+
+    public static string DogInfo()
+    {
+        var d = GameObject.Find("CLOSE_Dog0");
+        if (d == null) return "no dog";
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"pos={d.transform.position} scale={d.transform.localScale} dead={d.GetComponent<StandardEnemy>().IsDead} ");
+        foreach (var r in d.GetComponentsInChildren<Renderer>(true)) sb.Append($"| {r.name} en={r.enabled} vis={r.isVisible} b={r.bounds.center}/{r.bounds.size} ");
+        var a = d.GetComponentInChildren<Animator>();
+        sb.Append($"| anim={(a != null ? a.runtimeAnimatorController?.name + " st=" + a.GetCurrentAnimatorStateInfo(0).shortNameHash + " en=" + a.enabled : "none")}");
+        var head = d.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name == "Bip01 Head");
+        if (head != null) sb.Append($" head={head.position}");
+        return sb.ToString();
+    }
+
+    public static string LevelTextInfo()
+    {
+        var t = GameObject.Find("LevelText")?.GetComponent<TMPro.TMP_Text>();
+        if (t == null) return "none";
+        var rt = t.rectTransform;
+        return $"size={rt.rect.size} pos={rt.anchoredPosition} font={t.fontSize} auto={t.enableAutoSizing} min={t.fontSizeMin} wrap={t.textWrappingMode} overflow={t.overflowMode} pref={t.preferredWidth} text='{t.text}'";
+    }
+
     public static string ForceWin() { LevelManager.Instance.OnLevelCompleted(); return "win"; }
     public static string ForceFail() { Barricade.Instance.TakeDamage(99999f, Vector3.forward * 3f); return "fail"; }
 

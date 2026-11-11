@@ -17,10 +17,10 @@ MonoBehaviour:
   isBossLevel: 1
   minMoveX: -2.4
   maxMoveX: 2.4
-  enemyHealthMultiplier: 1.8
+  enemyHealthMultiplier: 1.68
   enemySpeedMultiplier: 1.12
   maxAliveOnField: 20
-  barricadeHealth: 170
+  barricadeHealth: 175
   completionCoins: 120
   waves:
   - waveName: Wave 1
@@ -43,7 +43,7 @@ MonoBehaviour:
       - {fileID: 4334591631115332176, guid: 9faf6eddb734ce841a3bea391bfb4db5, type: 3}
       - {fileID: 7051874692334990440, guid: a24546c812365b9468eac49e1b5fa46f, type: 3}
       - {fileID: 5719514883313091358, guid: db85f4cc49cd3874b9b145e6473d87cf, type: 3}
-      count: 9
+      count: 6
       clusterSpread: 6
       spawnInterval: 0.6
       startDelay: 1.5
@@ -51,7 +51,7 @@ MonoBehaviour:
       enemyPrefab: {fileID: 6833990528375818701, guid: d53ed0aa52efffc4eb7bb2df9f29924a, type: 3}
       variantPrefabs:
       - {fileID: 968299695079917898, guid: c3aae786767679740b8426347f18960d, type: 3}
-      count: 3
+      count: 2
       clusterSpread: 6
       spawnInterval: 1.5
       startDelay: 3
@@ -63,6 +63,13 @@ MonoBehaviour:
       clusterSpread: 6
       spawnInterval: 1
       startDelay: 5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 7
     - spawnFrom: 3
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
       variantPrefabs:
@@ -71,7 +78,7 @@ MonoBehaviour:
       count: 4
       clusterSpread: 6
       spawnInterval: 0.45
-      startDelay: 8
+      startDelay: 9
   - waveName: Wave 2
     delayBeforeWave: 2
     waveClearPercentage: 0.65
@@ -98,7 +105,7 @@ MonoBehaviour:
       variantPrefabs:
       - {fileID: 4245521589735788394, guid: 33200f961b964ff4ea19d8321e78a8ef, type: 3}
       - {fileID: 7022857564325383112, guid: 17d25a92cdf23dc4a9a717d18ab02647, type: 3}
-      count: 8
+      count: 6
       clusterSpread: 6
       spawnInterval: 0.6
       startDelay: 2
@@ -117,6 +124,13 @@ MonoBehaviour:
       clusterSpread: 6
       spawnInterval: 1
       startDelay: 6
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 9
   - waveName: BOSS
     delayBeforeWave: 2.5
     waveClearPercentage: 1
@@ -144,19 +158,17 @@ MonoBehaviour:
       - {fileID: 4334591631115332176, guid: 9faf6eddb734ce841a3bea391bfb4db5, type: 3}
       - {fileID: 7051874692334990440, guid: a24546c812365b9468eac49e1b5fa46f, type: 3}
       - {fileID: 5719514883313091358, guid: db85f4cc49cd3874b9b145e6473d87cf, type: 3}
-      count: 9
+      count: 6
       clusterSpread: 6
       spawnInterval: 0.6
       startDelay: 3
-    - spawnFrom: 3
-      enemyPrefab: {fileID: 7213973932497841770, guid: 18cf329ce86f2114dbcec9513117569d, type: 3}
-      variantPrefabs:
-      - {fileID: 4245521589735788394, guid: 33200f961b964ff4ea19d8321e78a8ef, type: 3}
-      - {fileID: 7022857564325383112, guid: 17d25a92cdf23dc4a9a717d18ab02647, type: 3}
-      count: 6
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 4
       clusterSpread: 6
-      spawnInterval: 0.7
-      startDelay: 5
+      spawnInterval: 0.3
+      startDelay: 6
     - spawnFrom: 0
       enemyPrefab: {fileID: 9196953796044406670, guid: 94d261057d3f15f4db83b5b7b769026e, type: 3}
       variantPrefabs: []

@@ -2433,6 +2433,7 @@ MonoBehaviour:
   alwaysVisible: 0
   visibleTime: 2.2
   headOffset: 0.3
+  headBone: {fileID: 0}
 --- !u!1 &4905922775596028882
 GameObject:
   m_ObjectHideFlags: 0
@@ -4257,3 +4258,4 @@ MonoBehaviour:
   deathBackwardForce: 14
   deathUpwardLift: 5
   corpseLifeTime: 2.5
+  chestHeight: 1.1

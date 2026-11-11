@@ -28,6 +28,8 @@ public class ThrownWeapon : MonoBehaviour
     private Vector3 velocity;
     private float lifeTimer;
     private int pierceLeft;
+    private int ricochetLeft;
+    private float damageScale = 1f;
     private bool finished;
     private readonly HashSet<HumanoidEnemy> alreadyHit = new HashSet<HumanoidEnemy>();
 
@@ -45,6 +47,8 @@ public class ThrownWeapon : MonoBehaviour
         finished = false;
         alreadyHit.Clear();
         pierceLeft = data != null ? data.pierceCount : 0;
+        ricochetLeft = data != null ? data.ricochetCount : 0;
+        damageScale = 1f;
         if (data != null && data.useVisualEulers && visualRoot != null && visualRoot != transform)
             visualRoot.localRotation = Quaternion.Euler(data.drawnVisualEuler);
         RestartVisualParticles();
@@ -95,6 +99,50 @@ public class ThrownWeapon : MonoBehaviour
 
         if (trail != null) { trail.Clear(); trail.emitting = true; }
         if (flightVfx != null) flightVfx.SetActive(true);
+
+        PickAssistTarget();
+    }
+
+    private StandardEnemy assistTarget;
+
+    /// <summary>
+    /// Aim assist: weapon ki seedh (lane) ke sab se qareeb zombie chuno. Sirf zombies - drum/gaadi kabhi nahi.
+    /// Door wale zombie ke liye thodi zyada gunjaish (perspective mein chhota dikhta hai).
+    /// </summary>
+    private void PickAssistTarget()
+    {
+        assistTarget = null;
+        if (IsDummy || Data.useGravity || Data.aimAssistRadius <= 0f) return;
+        Vector3 p = transform.position;
+        Vector3 dir = new Vector3(velocity.x, 0f, velocity.z).normalized;
+        float best = float.MaxValue;
+        var list = StandardEnemy.Active;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var e = list[i];
+            if (e == null || e.IsDead) continue;
+            Vector3 to = e.transform.position - p; to.y = 0f;
+            float along = Vector3.Dot(to, dir);
+            if (along < 1.5f || along > 30f) continue;
+            float side = Mathf.Abs(Vector3.Cross(dir, to).y);
+            float allow = Data.aimAssistRadius * (0.7f + along * 0.04f);
+            if (side > allow) continue;
+            float score = side + along * 0.02f; // seedh mein ho to behtar, barabar ho to qareeb wala
+            if (score < best) { best = score; assistTarget = e; }
+        }
+    }
+
+    /// <summary> Chuna hua zombie: velocity ko aahista us ki taraf mor do (raftar wahi) </summary>
+    private void SteerToTarget(float dt)
+    {
+        if (assistTarget == null) return;
+        if (assistTarget.IsDead || alreadyHit.Contains(assistTarget)) { assistTarget = null; return; }
+        Vector3 aim = assistTarget.transform.position + Vector3.up * 1.0f * assistTarget.transform.lossyScale.y;
+        Vector3 to = aim - transform.position;
+        if (Vector3.Dot(to, velocity) <= 0f) { assistTarget = null; return; } // guzar chuka
+        float speed = velocity.magnitude;
+        Vector3 newDir = Vector3.RotateTowards(velocity / speed, to.normalized, Data.aimAssistTurnRate * Mathf.Deg2Rad * dt, 0f);
+        velocity = newDir * speed;
     }
 
     private float visualRefreshTimer;
@@ -128,6 +176,7 @@ public class ThrownWeapon : MonoBehaviour
         if (Data.useGravity)
             velocity += Vector3.down * Data.gravity * dt;
 
+        SteerToTarget(dt);
         CheckKillCam();
 
         Vector3 step = velocity * dt;
@@ -227,7 +276,7 @@ public class ThrownWeapon : MonoBehaviour
                 return false;
             }
 
-            enemy.TakeDamage(Data.damage, hit.point, velocity.normalized * Data.impactForce);
+            enemy.TakeDamage(Data.damage * damageScale, hit.point, velocity.normalized * Data.impactForce);
             if (Data.hitVfxOnEnemies) SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 2f);
             SoundManager.Instance?.PlayRandomSFX(Data.hitSounds, 0.9f, 1.1f, 0.8f);
             if (Data.chainCount > 0) ChainLightning(enemy, hit.point);
@@ -238,6 +287,9 @@ public class ThrownWeapon : MonoBehaviour
                 return true;
             }
 
+            // Ripper Blade: kaat kar agle zombie ki taraf uchhal jao
+            if (ricochetLeft > 0 && Ricochet(enemy, pos)) return false;
+
             if (Data.stickOnHit) StickInto(hit);
             Finish();
             return false;
@@ -247,6 +299,14 @@ public class ThrownWeapon : MonoBehaviour
         IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
         if (damageable != null)
         {
+            // Drum sirf SEEDHE hit par phate - zombie par chalaya weapon drum ko chhoo kar na phaade (QA report)
+            var barrel = hit.collider.GetComponentInParent<ExplosiveBarrel>();
+            if (barrel != null)
+            {
+                Vector3 toC = barrel.transform.position - pos; toC.y = 0f;
+                Vector3 d = new Vector3(velocity.x, 0f, velocity.z).normalized;
+                if (Mathf.Abs(Vector3.Cross(d, toC).y) > 0.26f) return true; // sirf kinara chhua - aage guzar jao
+            }
             damageable.TakeDamage(Data.damage + Data.explosionDamage, hit.point, velocity.normalized * Data.impactForce);
             SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 1.5f);
             Finish();
@@ -264,6 +324,36 @@ public class ThrownWeapon : MonoBehaviour
         }
         Finish();
         return false;
+    }
+
+    /// <summary>
+    /// Sab se qareeb zinda (pehle na kata) zombie dhoondo aur usi ki taraf mur jao. False = koi nahi mila.
+    /// Is frame mein ruk jate hain (naya rukh agle frame se) - is liye HandleHit false lautata hai bagair Finish ke.
+    /// </summary>
+    private bool Ricochet(HumanoidEnemy from, Vector3 pos)
+    {
+        StandardEnemy best = null;
+        float bestD = Data.ricochetRange * Data.ricochetRange;
+        var list = StandardEnemy.Active;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var e = list[i];
+            if (e == null || e.IsDead || e == from || alreadyHit.Contains(e)) continue;
+            float d = (e.transform.position - pos).sqrMagnitude;
+            if (d < bestD) { bestD = d; best = e; }
+        }
+        if (best == null) return false;
+
+        ricochetLeft--;
+        damageScale *= Data.ricochetDamageFactor;
+        float speed = velocity.magnitude;
+        Vector3 target = best.transform.position + Vector3.up * 0.9f * best.transform.lossyScale.y;
+        velocity = (target - pos).normalized * speed;
+        transform.position = pos;
+        transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0f, velocity.z).sqrMagnitude > 0.001f ? new Vector3(velocity.x, 0f, velocity.z) : velocity);
+        lifeTimer = Mathf.Max(lifeTimer, 0.8f);
+        SoundManager.Instance?.PlayRandomSFX(Data.ricochetSounds, 1.05f, 1.25f, 0.7f);
+        return true;
     }
 
     /// <summary>

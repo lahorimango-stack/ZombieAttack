@@ -214,6 +214,71 @@ public static class RagdollRebuilder
         return true;
     }
 
+    /// <summary>
+    /// 4 tangon wala ragdoll (zombie dog, 3ds Max Biped bones naam se): pelvis, seena, sar, chaaron tangein.
+    /// Humanoid avatar nahi chahiye.
+    /// </summary>
+    public static bool RebuildQuadruped(GameObject root, float totalMass = 25f)
+    {
+        foreach (var j in root.GetComponentsInChildren<Joint>(true)) Object.DestroyImmediate(j, true);
+        foreach (var rb in root.GetComponentsInChildren<Rigidbody>(true)) if (rb.gameObject != root) Object.DestroyImmediate(rb, true);
+        foreach (var c in root.GetComponentsInChildren<Collider>(true)) if (c.gameObject != root) Object.DestroyImmediate(c, true);
+
+        var bones = root.GetComponentsInChildren<Transform>(true);
+        Transform F(string n) => bones.FirstOrDefault(t => t.name == n);
+        Transform pelvis = F("Bip01 Pelvis"), chest = F("Bip01 Spine1"), neck = F("Bip01 Neck"), head = F("Bip01 Head");
+        if (pelvis == null || chest == null || head == null) { Debug.LogWarning("[Ragdoll] Dog bones nahi mile"); return false; }
+
+        Vector3 right = root.transform.right, fwd = root.transform.forward, up = root.transform.up;
+        float len = Vector3.Distance(pelvis.position, head.position); // jism ki lambai se baaki naap
+        var bodies = new Dictionary<Transform, Rigidbody>();
+
+        var pelvisRb = AddBody(pelvis, totalMass * 0.3f); bodies[pelvis] = pelvisRb;
+        var pBox = pelvis.gameObject.AddComponent<BoxCollider>();
+        float s = Mathf.Max(0.0001f, pelvis.lossyScale.x);
+        pBox.size = Vector3.one * (len * 0.32f / s);
+        pBox.center = pelvis.InverseTransformPoint(Vector3.Lerp(pelvis.position, chest.position, 0.3f));
+
+        var chestRb = AddBody(chest, totalMass * 0.3f); bodies[chest] = chestRb;
+        var cBox = chest.gameObject.AddComponent<BoxCollider>();
+        float cs = Mathf.Max(0.0001f, chest.lossyScale.x);
+        cBox.size = Vector3.one * (len * 0.34f / cs);
+        cBox.center = chest.InverseTransformPoint(Vector3.Lerp(chest.position, neck != null ? neck.position : head.position, 0.4f));
+        AddJoint(chest, pelvisRb, right, up, -20f, 20f, 15f);
+
+        var headRb = AddBody(head, totalMass * 0.12f); bodies[head] = headRb;
+        var sph = head.gameObject.AddComponent<SphereCollider>();
+        sph.radius = len * 0.17f / Mathf.Max(0.0001f, head.lossyScale.x);
+        Transform nub = F("Bip01 HeadNub");
+        sph.center = head.InverseTransformPoint(nub != null ? Vector3.Lerp(head.position, nub.position, 0.5f) : head.position);
+        AddJoint(head, chestRb, right, up, -35f, 35f, 30f);
+
+        // Tangein: pichli (Thigh->Calf->Foot) pelvis se, agli (UpperArm->Forearm->Hand) seene se
+        void Leg(string a, string b, string end, Rigidbody parent)
+        {
+            Transform u = F(a), l = F(b), e = F(end);
+            if (u == null || l == null) return;
+            var uRb = AddBody(u, totalMass * 0.05f); bodies[u] = uRb;
+            AddCapsule(u, l.position, len * 0.06f);
+            var lRb = AddBody(l, totalMass * 0.03f); bodies[l] = lRb;
+            AddCapsule(l, e != null ? e.position : l.position + (l.position - u.position), len * 0.05f);
+            AddJoint(u, parent, right, fwd, -40f, 40f, 25f);
+            AddJoint(l, uRb, right, fwd, -60f, 10f, 5f);
+        }
+        Leg("Bip01 L Thigh", "Bip01 L Calf", "Bip01 L Foot", pelvisRb);
+        Leg("Bip01 R Thigh", "Bip01 R Calf", "Bip01 R Foot", pelvisRb);
+        Leg("Bip01 L UpperArm", "Bip01 L Forearm", "Bip01 L Hand", chestRb);
+        Leg("Bip01 R UpperArm", "Bip01 R Forearm", "Bip01 R Hand", chestRb);
+
+        foreach (var rb in bodies.Values)
+        {
+            rb.isKinematic = true;
+            rb.interpolation = RigidbodyInterpolation.None;
+            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        }
+        return true;
+    }
+
     private static void LimbPair(Animator anim, Dictionary<Transform, Rigidbody> bodies, HumanBodyBones upper, HumanBodyBones lower, HumanBodyBones end,
                                  Rigidbody parentRb, float totalMass, float scale, Vector3 worldRight, Vector3 worldForward, Vector3 worldUp, bool leg, int armSide = 0)
     {

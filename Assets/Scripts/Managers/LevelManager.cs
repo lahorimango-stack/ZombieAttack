@@ -230,7 +230,10 @@ public class LevelManager : MonoBehaviour
             if (wave.showBanner)
             {
                 bool isFinal = w == waveCount - 1 && waveCount > 1;
-                UIManager.Instance?.ShowWaveBanner(w + 1, waveCount, isFinal, currentActiveLevelData.isBossLevel && isFinal);
+                if (w == 0)
+                    UIManager.Instance?.ShowLevelIntro(currentActiveLevelData.levelName, currentActiveLevelData.levelSubtitle, false);
+                else
+                    UIManager.Instance?.ShowWaveBanner(w + 1, waveCount, isFinal, currentActiveLevelData.isBossLevel && isFinal);
                 SoundManager.Instance?.PlayWaveStart(isFinal);
             }
 
