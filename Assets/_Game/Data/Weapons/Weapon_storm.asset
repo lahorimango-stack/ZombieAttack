@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cff9e7ca5df8164458cbd12ca4e76d13, type: 3}
+  m_Name: Weapon_storm
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDataSO
+  weaponId: storm
+  displayName: Storm Orb
+  description: Lightning jumps from zombie to zombie!
+  icon: {fileID: 21300000, guid: 961397e863df51a408955ad5871f8708, type: 3}
+  themeColor: {r: 0.55, g: 0.75, b: 1, a: 1}
+  unlockLevel: 14
+  coinPrice: 3200
+  weaponPrefab: {fileID: 6021319992268508488, guid: 42c71eb9c68cace4d9ea7bc5223372c3, type: 3}
+  spawnInterval: 0.14
+  minDistanceBetween: 0.42
+  maxCount: 6
+  spawnScale: 1
+  launchSpeed: 26
+  useGravity: 0
+  gravity: 12
+  launchUpAngle: 0
+  spinAxis: {x: 1, y: 0, z: 0}
+  spinSpeed: 0
+  useVisualEulers: 0
+  drawnVisualEuler: {x: 0, y: 0, z: -90}
+  flightVisualEuler: {x: 90, y: 0, z: 0}
+  alignToVelocity: 0
+  lifeTime: 2.4
+  stickOnHit: 0
+  stuckVisualEuler: {x: 0, y: 0, z: 0}
+  stuckDepth: 0.08
+  hitRadius: 0.35
+  damage: 50
+  pierceCount: 0
+  explosionRadius: 0
+  explosionDamage: 0
+  impactForce: 22
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
+  fuseDelay: 0
+  fuseBeepSounds: []
+  clusterCount: 0
+  clusterSpread: 2.2
+  clusterScale: 0.55
+  chainCount: 4
+  chainRadius: 4.5
+  chainDamageFactor: 0.8
+  chainLineMaterial: {fileID: 2100000, guid: c82c529f088cef640b1944f91e09ca72, type: 2}
+  fireZoneDuration: 0
+  fireZoneRadius: 2
+  fireZoneDps: 30
+  fireZoneVfx: {fileID: 0}
+  minRange: 6
+  maxRange: 22
+  spawnVfx: {fileID: 0}
+  hitVfx: {fileID: 2316986257420096919, guid: da5ab8df092464a46ba45711d5998bd9, type: 3}
+  hitVfxOnEnemies: 1
+  explosionVfx: {fileID: 0}
+  firstSpawnSounds:
+  - {fileID: 8300000, guid: 15e975cd60e3c8a4089aec4f9b6a0f5e, type: 3}
+  - {fileID: 8300000, guid: 018f2354bccb8014c93c378d72d58141, type: 3}
+  spawnSounds:
+  - {fileID: 8300000, guid: 72687cc3c7b76da4bbed43110d5aa108, type: 3}
+  - {fileID: 8300000, guid: 582a9bfcde1608748bd4493264547fcb, type: 3}
+  - {fileID: 8300000, guid: 87ea1db5411f0ec46811093ff594bca8, type: 3}
+  spawnPitch: 1
+  spawnVolume: 0.45
+  launchSounds:
+  - {fileID: 8300000, guid: 02ffc08ef981d0f47bcf78a6e3eaa6a7, type: 3}
+  - {fileID: 8300000, guid: b9084a12bc7b56641b3fbba2e8c2bf38, type: 3}
+  hitSounds:
+  - {fileID: 8300000, guid: 02ffc08ef981d0f47bcf78a6e3eaa6a7, type: 3}
+  - {fileID: 8300000, guid: b9084a12bc7b56641b3fbba2e8c2bf38, type: 3}
+  - {fileID: 8300000, guid: 15e975cd60e3c8a4089aec4f9b6a0f5e, type: 3}
+  - {fileID: 8300000, guid: 018f2354bccb8014c93c378d72d58141, type: 3}
+  explosionSounds: []
+  cameraShake: 0

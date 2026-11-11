@@ -128,8 +128,11 @@ public static partial class ZombieGameBuilder
         SetLayerRecursive(inst, LayerEnemy);
 
         // Unity objects par "??" kaam nahi karta (fake null) - seedha check
-        Animator anim = inst.GetComponentInChildren<Animator>(true);
-        if (anim == null) anim = inst.AddComponent<Animator>();
+        // Animator MODEL par (clips ke paths 'ZombieDog 2 (1)/...' model ke andar se shuru hote hain).
+        // Pehle root par lagta tha - koi bone nahi hilta tha, dog jama hua sarakta tha
+        Animator anim = modelGo.GetComponent<Animator>();
+        if (anim == null) anim = modelGo.AddComponent<Animator>();
+        foreach (var extra in inst.GetComponents<Animator>()) Object.DestroyImmediate(extra);
         if (anim.avatar == null)
         {
             var av = AssetDatabase.LoadAllAssetsAtPath(DogFbx).OfType<Avatar>().FirstOrDefault();
@@ -172,14 +175,14 @@ public static partial class ZombieGameBuilder
         Set(enemy, "antiMergeRadius", 0.35f);
         Set(enemy, "enemyLayer", 1 << LayerEnemy);
         Set(enemy, "chestHeight", 0.55f);
-        Set(enemy, "groanSounds", ClipsStartingWith(D, "MONSTER_Growl_Medium"));
+        Set(enemy, "groanSounds", ClipsStartingWith(D, "MONSTER_Growl_Medium").Concat(ClipsStartingWith(D, "MONSTER_Growl_Deep_0")).ToArray()); // daudte hue gurrahat
         Set(enemy, "minGroanInterval", 2.5f);
         Set(enemy, "maxGroanInterval", 5f);
-        Set(enemy, "emergeSounds", ClipsStartingWith(D, "ANIMAL_Dog_Bark"));
+        Set(enemy, "emergeSounds", ClipsStartingWith(D, "ANIMAL_Dog_Bark").Concat(ClipsStartingWith(D, "MONSTER_Growl_Short_0")).ToArray());
         Set(enemy, "emergeSoundChance", 0.9f);
         Set(enemy, "hitSounds", ClipsStartingWith(D, "ANIMAL_Dog_Yelp").Concat(ClipsStartingWith(D, "MONSTER_Growl_Hurt")).ToArray());
         Set(enemy, "deathSounds", ClipsStartingWith(D, "ANIMAL_Dog_Yelp"));
-        Set(enemy, "attackSounds", ClipsStartingWith(D, "MONSTER_Growl_Deep"));
+        Set(enemy, "attackSounds", ClipsStartingWith(D, "MONSTER_Growl_Short")); // kaatte waqt chhoti tez gurrahat (8 alag)
         Set(enemy, "hitBloodVfx", Vfx("VFX_BloodHit"));
         Set(enemy, "deathVfx", Vfx("VFX_BloodDeath2"));
         Set(enemy, "deathBackwardForce", 16f);

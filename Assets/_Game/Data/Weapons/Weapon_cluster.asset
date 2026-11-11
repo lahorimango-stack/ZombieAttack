@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cff9e7ca5df8164458cbd12ca4e76d13, type: 3}
+  m_Name: Weapon_cluster
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDataSO
+  weaponId: cluster
+  displayName: Cluster Bomb
+  description: One big blast, then four more around it!
+  icon: {fileID: 21300000, guid: b3c0076bdb5b70e4b93a7e07699b4361, type: 3}
+  themeColor: {r: 1, g: 0.6, b: 0.2, a: 1}
+  unlockLevel: 21
+  coinPrice: 5500
+  weaponPrefab: {fileID: 4527796293595179127, guid: 8c0855d052e7b2f47a442965ccec29ba, type: 3}
+  spawnInterval: 0.25
+  minDistanceBetween: 0.6
+  maxCount: 3
+  spawnScale: 1.4
+  launchSpeed: 15
+  useGravity: 1
+  gravity: 14
+  launchUpAngle: 35
+  spinAxis: {x: 1, y: 0.4, z: 0.2}
+  spinSpeed: 600
+  useVisualEulers: 0
+  drawnVisualEuler: {x: 0, y: 0, z: -90}
+  flightVisualEuler: {x: 90, y: 0, z: 0}
+  alignToVelocity: 0
+  lifeTime: 4
+  stickOnHit: 0
+  stuckVisualEuler: {x: 0, y: 0, z: 0}
+  stuckDepth: 0.08
+  hitRadius: 0.2
+  damage: 0
+  pierceCount: 0
+  explosionRadius: 2.3
+  explosionDamage: 110
+  impactForce: 34
+  aimAssistRadius: 0.6
+  aimAssistTurnRate: 38
+  ricochetCount: 0
+  ricochetRange: 7
+  ricochetDamageFactor: 0.85
+  ricochetSounds: []
+  fuseDelay: 0
+  fuseBeepSounds: []
+  clusterCount: 4
+  clusterSpread: 2.4
+  clusterScale: 0.55
+  chainCount: 0
+  chainRadius: 4
+  chainDamageFactor: 0.7
+  chainLineMaterial: {fileID: 0}
+  fireZoneDuration: 0
+  fireZoneRadius: 2
+  fireZoneDps: 30
+  fireZoneVfx: {fileID: 0}
+  minRange: 6
+  maxRange: 22
+  spawnVfx: {fileID: 0}
+  hitVfx: {fileID: 0}
+  hitVfxOnEnemies: 1
+  explosionVfx: {fileID: 4166957819242356463, guid: b34e4ac1ba228204eae5ffddf695acd6, type: 3}
+  firstSpawnSounds: []
+  spawnSounds:
+  - {fileID: 8300000, guid: f7bebb03737ea374aa03ed1ddebff4e9, type: 3}
+  - {fileID: 8300000, guid: 2fa56ade5cfed39409eb58da8fbc875f, type: 3}
+  - {fileID: 8300000, guid: e6991dc3800c2414084f32faeec79d67, type: 3}
+  - {fileID: 8300000, guid: 90aae7de3047c96409c382b68b1ac242, type: 3}
+  spawnPitch: 0.8
+  spawnVolume: 0.55
+  launchSounds:
+  - {fileID: 8300000, guid: d762bfc2ed4970a409733d59fe687fa4, type: 3}
+  hitSounds: []
+  explosionSounds:
+  - {fileID: 8300000, guid: fafc499d351e2f743b21ed2265bee75d, type: 3}
+  - {fileID: 8300000, guid: 16b311057cd97d4489e90f76188ac18f, type: 3}
+  - {fileID: 8300000, guid: 798b37d2cbb3d2a4c846070c319ce1f7, type: 3}
+  - {fileID: 8300000, guid: ecda61556b5ff5742b6a89f6e0596cd5, type: 3}
+  cameraShake: 0.22

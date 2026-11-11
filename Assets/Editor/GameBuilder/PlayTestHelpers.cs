@@ -141,12 +141,99 @@ public static class PlayTestHelpers
         return sb.ToString();
     }
 
+    /// <summary> Dog animation sach mein chal rahi hai? (bone ki position do frames mein badalti hai ya nahi) </summary>
+    public static string DogAnim()
+    {
+        var d = GameObject.Find("CLOSE_Dog0");
+        if (d == null) return "no dog";
+        var a = d.GetComponentInChildren<Animator>();
+        var st = a.GetCurrentAnimatorStateInfo(0);
+        var clips = a.GetCurrentAnimatorClipInfo(0);
+        var leg = d.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name == "Bip01 L Calf");
+        var smr = d.GetComponentInChildren<SkinnedMeshRenderer>();
+        return $"animEnabled={a.enabled} speed={a.speed} culling={a.cullingMode} avatar={(a.avatar ? a.avatar.name + " valid=" + a.avatar.isValid : "none")} hasBound={a.hasBoundPlayables} norm={st.normalizedTime:0.00} loop={st.loop} clip={(clips.Length > 0 ? clips[0].clip.name : "none")} legLocal={leg?.localRotation.eulerAngles} smrRoot={smr?.rootBone?.name} bones={smr?.bones.Length} firstBone={(smr != null && smr.bones.Length > 0 && smr.bones[0] != null ? smr.bones[0].name : "null")}";
+    }
+
     public static string LevelTextInfo()
     {
         var t = GameObject.Find("LevelText")?.GetComponent<TMPro.TMP_Text>();
         if (t == null) return "none";
         var rt = t.rectTransform;
         return $"size={rt.rect.size} pos={rt.anchoredPosition} font={t.fontSize} auto={t.enableAutoSizing} min={t.fontSizeMin} wrap={t.textWrappingMode} overflow={t.overflowMode} pref={t.preferredWidth} text='{t.text}'";
+    }
+
+    public static string GiveCoins() { GameManager.Instance.AddCoins(6000); return "coins=" + GameManager.Instance.Coins; }
+    // Phanse zombies: do dafa chalao (kuch second ke farq se) - jo 0.25m se kam hile woh "STUCK"
+    private static readonly System.Collections.Generic.Dictionary<StandardEnemy, Vector3> lastPos =
+        new System.Collections.Generic.Dictionary<StandardEnemy, Vector3>();
+    public static void StuckReport()
+    {
+        var sb = new System.Text.StringBuilder("[Stuck] ");
+        int stuck = 0, total = 0;
+        foreach (var e in Object.FindObjectsByType<StandardEnemy>(FindObjectsSortMode.None))
+        {
+            if (!e.isActiveAndEnabled) continue;
+            total++;
+            Vector3 p = e.transform.position;
+            if (lastPos.TryGetValue(e, out var old) && (p - old).sqrMagnitude < 0.0625f && p.z > 4f)
+            { stuck++; sb.Append($"{e.name}({p.x:F1},{p.z:F1}) "); }
+            lastPos[e] = p;
+        }
+        Debug.Log($"{sb} stuck={stuck}/{total}");
+    }
+
+    public static void JumpToLevel12() => JumpTo(12);
+    public static void JumpToLevel15() => JumpTo(15);
+    public static void JumpToLevel20() => JumpTo(20);
+    public static void JumpToLevel25() => JumpTo(25);
+    public static string OpenShop() { UIManager.Instance.OnShopButtonClicked(); return "shop"; }
+    public static string IAPState() => IAPManager.Instance == null ? "no iap" : $"ready={IAPManager.Instance.IsReady} small={IAPManager.Instance.PriceOf(IAPManager.Catalog[0].id)} starter={IAPManager.Instance.PriceOf(IAPManager.StarterPackId)} coins={GameManager.Instance.Coins}";
+    /// <summary> IAP ka inaam wala hissa (store dialog ke bagair): Starter Pack + small pack </summary>
+    public static string GrantTest()
+    {
+        var grant = typeof(IAPManager).GetMethod("Grant", BindingFlags.NonPublic | BindingFlags.Instance);
+        int before = GameManager.Instance.Coins;
+        grant.Invoke(IAPManager.Instance, new object[] { IAPManager.Catalog[0].id });
+        grant.Invoke(IAPManager.Instance, new object[] { IAPManager.StarterPackId });
+        var ripper = GameManager.Instance.WeaponController.Weapons.First(w => w.weaponId == "ripper");
+        return $"coins {before}->{GameManager.Instance.Coins} (expect +6200) starter={Economy.StarterPackOwned} ripperOwned={Economy.IsOwned(ripper)} armor={Economy.ArmorLevel} canBuyStarter={IAPManager.Instance.CanBuy(IAPManager.StarterPackId)}";
+    }
+
+    public static string BuySmallPack() { IAPManager.Instance.Buy(IAPManager.Catalog[0].id); return "buying"; }
+    public static string BuyStarter() { IAPManager.Instance.Buy(IAPManager.StarterPackId); return "buying starter"; }
+
+    /// <summary> Sab se qareeb tootne wali cheez par weapon jaisa hit (2 dafa) </summary>
+    public static string EconomyTest()
+    {
+        var wc = GameManager.Instance.WeaponController;
+        var axe = wc.Weapons.First(w => w.weaponId == "axe");
+        int before = GameManager.Instance.Coins;
+        bool bought = Economy.TryBuyWeapon(axe);
+        bool up1 = Economy.TryUpgradeWeapon(axe);
+        bool up2 = Economy.TryUpgradeWeapon(axe);
+        bool armor = Economy.TryUpgradeArmor();
+        int daily = Economy.ClaimDaily();
+        return $"bought={bought} owned={Economy.IsOwned(axe)} up1={up1} up2={up2} axeLvl={Economy.WeaponLevel(axe)} mult={Economy.DamageMultiplier(axe):0.00} extra={Economy.ExtraCount(axe)} armor={armor} armorLvl={Economy.ArmorLevel} daily=+{daily} coins {before}->{GameManager.Instance.Coins} unlockedNow={wc.IsUnlocked(axe)}";
+    }
+
+    public static string BreakNearest()
+    {
+        var all = Object.FindObjectsByType<Breakable>();
+        if (all.Length == 0) return "no breakables";
+        var b = all.OrderBy(x => x.transform.position.z).First();
+        for (int i = 0; i < 4; i++) b.TakeDamage(40f, b.transform.position + Vector3.up, Vector3.forward * 10f);
+        return $"broke {b.name} at {b.transform.position} (total {all.Length})";
+    }
+
+    public static string SelectKunai() { GameManager.Instance.WeaponController.SwitchWeaponByName("Weapon_kunai"); return GameManager.Instance.WeaponController.CurrentWeapon.displayName; }
+    public static string SelectStorm() { GameManager.Instance.WeaponController.SwitchWeaponByName("Weapon_storm"); return GameManager.Instance.WeaponController.CurrentWeapon.displayName; }
+    public static string SelectCluster() { GameManager.Instance.WeaponController.SwitchWeaponByName("Weapon_cluster"); return GameManager.Instance.WeaponController.CurrentWeapon.displayName; }
+    public static string SelectRipper() { GameManager.Instance.WeaponController.SwitchWeaponByName("Weapon_ripper"); return GameManager.Instance.WeaponController.CurrentWeapon.displayName; }
+
+    public static string ListBreakables()
+    {
+        var all = Object.FindObjectsByType<Breakable>(FindObjectsInactive.Include);
+        return string.Join(" | ", all.Select(b => $"{b.name}@{b.GetComponentInParent<LevelEnvironment>(true)?.name?.Split(' ')[1]} act={b.gameObject.activeInHierarchy}"));
     }
 
     public static string ForceWin() { LevelManager.Instance.OnLevelCompleted(); return "win"; }

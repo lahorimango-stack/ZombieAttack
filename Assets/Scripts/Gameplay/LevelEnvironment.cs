@@ -77,6 +77,9 @@ public class LevelEnvironment : MonoBehaviour
         }
         foreach (var car in GetComponentsInChildren<ExplosiveVehicle>(true))
             car.ResetVehicle();
+
+        foreach (var b in GetComponentsInChildren<Breakable>(true)) b.ResetBreakable();
+        ZombieObstacles.Collect(transform);
     }
 
     private void SetRain(float amount)

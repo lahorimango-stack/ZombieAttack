@@ -1,0 +1,262 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c89b06e7582c54f85fe01988a57728, type: 3}
+  m_Name: Level_14
+  m_EditorClassIdentifier: Assembly-CSharp::LevelDataSO
+  levelName: The Pack Returns
+  levelSubtitle: Dogs. Lots of dogs.
+  isBossLevel: 0
+  minMoveX: -2.4
+  maxMoveX: 2.4
+  enemyHealthMultiplier: 2.41
+  enemySpeedMultiplier: 1.19
+  maxAliveOnField: 24
+  environmentIndex: 2
+  barricadeHealth: 240
+  completionCoins: 200
+  waves:
+  - waveName: Wave 1
+    delayBeforeWave: 1
+    waveClearPercentage: 0.65
+    showBanner: 1
+    enemyPacks:
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 0.5
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 6661923557537822885, guid: 0019032f4b48887499d008758b8b4794, type: 3}
+      variantPrefabs:
+      - {fileID: 4334591631115332176, guid: 9faf6eddb734ce841a3bea391bfb4db5, type: 3}
+      - {fileID: 7051874692334990440, guid: a24546c812365b9468eac49e1b5fa46f, type: 3}
+      - {fileID: 5719514883313091358, guid: db85f4cc49cd3874b9b145e6473d87cf, type: 3}
+      count: 9
+      clusterSpread: 6
+      spawnInterval: 0.5
+      startDelay: 1.5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 9
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 3
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 4717774543889356792, guid: a387ae0dd516957499032dead5ebe4da, type: 3}
+      variantPrefabs:
+      - {fileID: 8389885557742422264, guid: 80cb3d93a4bc9d945ba1c82cb6d10ace, type: 3}
+      count: 4
+      clusterSpread: 6
+      spawnInterval: 1
+      startDelay: 5
+    - spawnFrom: 3
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 12
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 6833990528375818701, guid: d53ed0aa52efffc4eb7bb2df9f29924a, type: 3}
+      variantPrefabs:
+      - {fileID: 968299695079917898, guid: c3aae786767679740b8426347f18960d, type: 3}
+      count: 2
+      clusterSpread: 6
+      spawnInterval: 1.2
+      startDelay: 2
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 8498405815976917023, guid: 0cf28d16a72d050449b63ade2e6c1501, type: 3}
+      variantPrefabs: []
+      count: 1
+      clusterSpread: 6
+      spawnInterval: 3
+      startDelay: 6
+  - waveName: Wave 2
+    delayBeforeWave: 2
+    waveClearPercentage: 0.65
+    showBanner: 1
+    enemyPacks:
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 6
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 0.5
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 6661923557537822885, guid: 0019032f4b48887499d008758b8b4794, type: 3}
+      variantPrefabs:
+      - {fileID: 4334591631115332176, guid: 9faf6eddb734ce841a3bea391bfb4db5, type: 3}
+      - {fileID: 7051874692334990440, guid: a24546c812365b9468eac49e1b5fa46f, type: 3}
+      - {fileID: 5719514883313091358, guid: db85f4cc49cd3874b9b145e6473d87cf, type: 3}
+      count: 12
+      clusterSpread: 6
+      spawnInterval: 0.5
+      startDelay: 1.5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 4
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 4
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 4717774543889356792, guid: a387ae0dd516957499032dead5ebe4da, type: 3}
+      variantPrefabs:
+      - {fileID: 8389885557742422264, guid: 80cb3d93a4bc9d945ba1c82cb6d10ace, type: 3}
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 1
+      startDelay: 8
+    - spawnFrom: 3
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 6
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 12
+  - waveName: Wave 3
+    delayBeforeWave: 2
+    waveClearPercentage: 0.65
+    showBanner: 1
+    enemyPacks:
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 5
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 0.5
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 6661923557537822885, guid: 0019032f4b48887499d008758b8b4794, type: 3}
+      variantPrefabs:
+      - {fileID: 4334591631115332176, guid: 9faf6eddb734ce841a3bea391bfb4db5, type: 3}
+      - {fileID: 7051874692334990440, guid: a24546c812365b9468eac49e1b5fa46f, type: 3}
+      - {fileID: 5719514883313091358, guid: db85f4cc49cd3874b9b145e6473d87cf, type: 3}
+      count: 8
+      clusterSpread: 6
+      spawnInterval: 0.5
+      startDelay: 1.5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 5
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 5
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 4717774543889356792, guid: a387ae0dd516957499032dead5ebe4da, type: 3}
+      variantPrefabs:
+      - {fileID: 8389885557742422264, guid: 80cb3d93a4bc9d945ba1c82cb6d10ace, type: 3}
+      count: 3
+      clusterSpread: 6
+      spawnInterval: 1
+      startDelay: 7
+    - spawnFrom: 3
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 6
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 9
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 6833990528375818701, guid: d53ed0aa52efffc4eb7bb2df9f29924a, type: 3}
+      variantPrefabs:
+      - {fileID: 968299695079917898, guid: c3aae786767679740b8426347f18960d, type: 3}
+      count: 2
+      clusterSpread: 6
+      spawnInterval: 1.2
+      startDelay: 2
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 8498405815976917023, guid: 0cf28d16a72d050449b63ade2e6c1501, type: 3}
+      variantPrefabs: []
+      count: 2
+      clusterSpread: 6
+      spawnInterval: 3
+      startDelay: 3
+  - waveName: Final
+    delayBeforeWave: 2
+    waveClearPercentage: 1
+    showBanner: 1
+    enemyPacks:
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 6
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 0.5
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 7213973932497841770, guid: 18cf329ce86f2114dbcec9513117569d, type: 3}
+      variantPrefabs:
+      - {fileID: 4245521589735788394, guid: 33200f961b964ff4ea19d8321e78a8ef, type: 3}
+      - {fileID: 7022857564325383112, guid: 17d25a92cdf23dc4a9a717d18ab02647, type: 3}
+      count: 12
+      clusterSpread: 6
+      spawnInterval: 0.5
+      startDelay: 1.5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 539243820082326196, guid: 130ba4cdaf417dd45a87181122b4d3a8, type: 3}
+      variantPrefabs: []
+      count: 8
+      clusterSpread: 6
+      spawnInterval: 0.3
+      startDelay: 4
+    - spawnFrom: 4
+      enemyPrefab: {fileID: 4717774543889356792, guid: a387ae0dd516957499032dead5ebe4da, type: 3}
+      variantPrefabs:
+      - {fileID: 8389885557742422264, guid: 80cb3d93a4bc9d945ba1c82cb6d10ace, type: 3}
+      count: 2
+      clusterSpread: 6
+      spawnInterval: 1
+      startDelay: 6
+    - spawnFrom: 3
+      enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
+      variantPrefabs:
+      - {fileID: 7728190569965719751, guid: a37da50b666fc5040bf5a00511ed1457, type: 3}
+      - {fileID: 2654413566701841396, guid: 8e3e009e6b676c7499a2eb6c90339037, type: 3}
+      count: 6
+      clusterSpread: 6
+      spawnInterval: 0.4
+      startDelay: 9
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 6833990528375818701, guid: d53ed0aa52efffc4eb7bb2df9f29924a, type: 3}
+      variantPrefabs:
+      - {fileID: 968299695079917898, guid: c3aae786767679740b8426347f18960d, type: 3}
+      count: 1
+      clusterSpread: 6
+      spawnInterval: 1.2
+      startDelay: 5
+    - spawnFrom: 0
+      enemyPrefab: {fileID: 9196953796044406670, guid: 94d261057d3f15f4db83b5b7b769026e, type: 3}
+      variantPrefabs: []
+      count: 2
+      clusterSpread: 6
+      spawnInterval: 4
+      startDelay: 4

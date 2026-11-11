@@ -288,7 +288,7 @@ public class WeaponFormationController : MonoBehaviour
         GameManager.Instance?.TriggerLightHaptic();
 
         // Max limit: Direct Destroy Oldest
-        if (activeWeaponsOnScreen.Count > data.maxCount)
+        if (activeWeaponsOnScreen.Count > Economy.EffectiveMaxCount(data)) // upgrade se zyada weapons
         {
             ThrownWeapon oldest = activeWeaponsOnScreen[0];
             activeWeaponsOnScreen.RemoveAt(0);
@@ -501,12 +501,20 @@ public class WeaponFormationController : MonoBehaviour
         currentWeaponIndex = 0;
     }
 
+    /// <summary> Istemal ho sakta hai: level pahunch gaya AUR khareeda hua (knife muft) </summary>
     public bool IsUnlocked(WeaponDataSO data)
     {
         if (data == null) return false;
         if (unlockAllWeapons) return true;
+        return IsAvailable(data) && Economy.IsOwned(data);
+    }
+
+    /// <summary> Level pahunch gaya - shop mein khareedne layak </summary>
+    public bool IsAvailable(WeaponDataSO data)
+    {
+        if (data == null) return false;
         int currentLevel = PlayerPrefs.GetInt("PlayerDisplayLevel", 1);
-        return data.unlockLevel <= currentLevel;
+        return unlockAllWeapons || data.unlockLevel <= currentLevel;
     }
 
     /// <summary> Level complete hone par naya unlock hua weapon (win panel ke liye) </summary>

@@ -449,6 +449,12 @@ public class StandardEnemy : HumanoidEnemy
             }
         }
 
+        // Gaadi / container / drum ke andar se nahi - gird se guzro
+        // (Blockade ke gap ke andar nahi - wahan gap ki chaurai pehle se had lagati hai; warna container ka bara
+        //  collider gap mein aa kar zombie ko peeche dhakelta tha aur woh kinare par phans jata tha)
+        if (!enteringFromSide && transform.position.z < gapZ - 0.8f)
+            transform.position = ZombieObstacles.Resolve(transform.position, BodyMargin * 0.75f);
+
         HandleGroanSounds();
 
         base.Update();

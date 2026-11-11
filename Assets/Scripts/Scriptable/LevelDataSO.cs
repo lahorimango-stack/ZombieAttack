@@ -73,6 +73,8 @@ public class LevelDataSO : ScriptableObject
     public float enemySpeedMultiplier = 1f;
     [Tooltip("Ek waqt mein field par zyada se zyada zombies (0 = LevelManager ki default had). Kam = organized, aasaan")]
     public int maxAliveOnField = 0;
+    [Tooltip("Kaunsa mahaul (0-9). -1 = level number ke hisaab se")]
+    public int environmentIndex = -1;
 
     [Header("--- 3. Barricade & Rewards ---")]
     public float barricadeHealth = 100f;

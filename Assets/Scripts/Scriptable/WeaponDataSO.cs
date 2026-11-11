@@ -12,8 +12,10 @@ public class WeaponDataSO : ScriptableObject
     [Tooltip("Card aur trail ka theme color")]
     public Color themeColor = Color.white;
 
-    [Tooltip("Kis level ko clear karne ke baad ye weapon unlock hoga (1 = shuru se)")]
+    [Tooltip("Is level par ye weapon khareedne ke liye available hota hai (1 = shuru se)")]
     public int unlockLevel = 1;
+    [Tooltip("Khareedne ki qeemat (coins). 0 = muft (knife)")]
+    public int coinPrice = 0;
 
     [Header("--- 2. Prefab ---")]
     [Tooltip("ThrownWeapon component wala prefab")]
@@ -80,6 +82,17 @@ public class WeaponDataSO : ScriptableObject
     [Tooltip("Har uchhaal par damage ka hissa (1 = poora)")]
     [Range(0.3f, 1f)] public float ricochetDamageFactor = 0.85f;
     public AudioClip[] ricochetSounds;
+
+    [Header("--- 5a1. Fuse (Blast Kunai) ---")]
+    [Tooltip("0 se zyada = zombie mein phans kar itne seconds baad phatta hai")]
+    public float fuseDelay = 0f;
+    public AudioClip[] fuseBeepSounds;
+
+    [Header("--- 5a2. Cluster (Cluster Bomb) ---")]
+    [Tooltip("Phatne ke baad itne chhote bam aas paas phatte hain (0 = off)")]
+    public int clusterCount = 0;
+    public float clusterSpread = 2.2f;
+    [Range(0.2f, 1f)] public float clusterScale = 0.55f;
 
     [Header("--- 5b. Chain Lightning ---")]
     [Tooltip("Hit ke baad kitne aur zombies tak bijli jaye (0 = off)")]

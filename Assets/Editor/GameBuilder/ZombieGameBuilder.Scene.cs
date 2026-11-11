@@ -827,8 +827,102 @@ public static partial class ZombieGameBuilder
         AddPointLight(l10, new Vector3(0f, 6f, 26f), new Color(1f, 0.15f, 0.08f), 8f, 24f, LightFlicker.FlickerStyle.Fire);
         for (int i = 0; i < 4; i++) AddBarrel(l10, barrelPrefab, new Vector3(i % 2 == 0 ? 2.2f : -2.2f, 0f, BarrelZ(i)));
 
+        // Sab props ko asal jism (collider): zombies inke andar se na guzrein (ZombieObstacles), laashein
+        // inse takrayein, weapon inpar lagein
+        foreach (var e in builtEnvironments) SolidifyProps(e.transform);
+
         // Pehle level ke ilawa sab band (LevelManager runtime par switch karta hai)
         for (int i = 1; i < builtEnvironments.Count; i++) builtEnvironments[i].gameObject.SetActive(false);
+    }
+
+    /// <summary> Level ke har bare prop (aur blockade ke hisson) par box collider - jin par pehle se nahi </summary>
+    private static void SolidifyProps(Transform env)
+    {
+        var candidates = new System.Collections.Generic.List<Transform>();
+        foreach (Transform t in env)
+        {
+            if (t.name == "Front Blockade") foreach (Transform w in t) candidates.Add(w);
+            else candidates.Add(t);
+        }
+        foreach (var t in candidates)
+        {
+            string ln = t.name.ToLower();
+            bool breakableName = ln.Contains("barricada") || ln.Contains("crate") || ln.Contains("tyre") || ln.Contains("jersey") || ln.Contains("sign") || ln.Contains("barrier big");
+            // Gaadi/drum ka apna collider hai; FPS props (barricade/crate/tyre) ke andar bhi collider hota hai - unhe phir bhi tootne layak banao
+            if (t.GetComponentInChildren<Collider>(true) != null && (!breakableName || t.GetComponent<ExplosiveVehicle>() != null || t.GetComponentInChildren<ExplosiveBarrel>(true) != null)) continue;
+            if (t.GetComponentInChildren<ParticleSystem>(true) != null) continue;     // aag/dhuaan
+            if (t.GetComponent<Light>() != null || t.GetComponent<UnityEngine.Rendering.Volume>() != null) continue;
+            if (t.GetComponentInChildren<Renderer>() == null) continue;
+            Bounds b = GetRenderBounds(t.gameObject);
+            if (b.size.y < 0.5f || b.size.x > 15f || b.size.z > 15f) continue;
+            Solid(t.gameObject);
+            MakeBreakable(t.gameObject);
+        }
+    }
+
+    private static GameObject debrisPrefab;
+
+    /// <summary> Ek tukda: chhota cube + rigidbody (material runtime par cheez ka) </summary>
+    private static GameObject DebrisPrefab()
+    {
+        if (debrisPrefab != null) return debrisPrefab;
+        string path = GameRoot + "/Prefabs/Debris_Chunk.prefab";
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = "Debris_Chunk";
+        var rb = go.AddComponent<Rigidbody>();
+        rb.mass = 0.6f; rb.linearDamping = 0.3f; rb.angularDamping = 0.4f;
+        var mr = go.GetComponent<MeshRenderer>();
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        debrisPrefab = PrefabUtility.SaveAsPrefabAsset(go, path);
+        Object.DestroyImmediate(go);
+        return debrisPrefab;
+    }
+
+    /// <summary>
+    /// Tor-phor: lakdi ke barricades/crates = takhte, jersey = concrete tukde, tyres/signs = poori cheez udti hai.
+    /// Baqi (containers, sandbags, hesco) sirf solid.
+    /// </summary>
+    private static void MakeBreakable(GameObject go)
+    {
+        string n = go.name.ToLower();
+        Breakable.Kind kind; Breakable.Mode mode; int hits; Vector3 size; int count;
+        if (n.Contains("barricada") || n.Contains("crate")) { kind = Breakable.Kind.Wood; mode = Breakable.Mode.Shatter; hits = n.Contains("crate") ? 2 : 1; size = new Vector3(0.5f, 0.05f, 0.13f); count = 10; }
+        else if (n.Contains("jersey")) { kind = Breakable.Kind.Concrete; mode = Breakable.Mode.Shatter; hits = 3; size = new Vector3(0.22f, 0.18f, 0.2f); count = 12; }
+        else if (n.Contains("tyre")) { kind = Breakable.Kind.Rubber; mode = Breakable.Mode.Physics; hits = 1; size = Vector3.one; count = 0; }
+        else if (n.Contains("sign") || n.Contains("barrier big")) { kind = Breakable.Kind.Metal; mode = Breakable.Mode.Physics; hits = 2; size = Vector3.one; count = 0; }
+        else return;
+
+        const string B = "Assets/Audio/Game/Break";
+        var br = go.AddComponent<Breakable>();
+        Set(br, "kind", kind);
+        Set(br, "mode", mode);
+        Set(br, "hits", hits);
+        Set(br, "coinReward", kind == Breakable.Kind.Concrete ? 3 : 1);
+        Set(br, "debrisPrefab", DebrisPrefab());
+        Set(br, "debrisMaterial", go.GetComponentInChildren<Renderer>()?.sharedMaterial);
+        Set(br, "debrisCount", count);
+        Set(br, "debrisSize", size);
+        switch (kind)
+        {
+            case Breakable.Kind.Wood:
+                Set(br, "hitSounds", ClipsStartingWith(B, "IMPACT_Wood"));
+                Set(br, "breakSounds", ClipsStartingWith(B, "BREAK_").Concat(ClipsStartingWith(B, "DEMOLISH_Wood")).ToArray());
+                Set(br, "breakVfx", Vfx("VFX_ImpactWood"));
+                break;
+            case Breakable.Kind.Concrete:
+                Set(br, "hitSounds", ClipsStartingWith(B, "THUD_Bright"));
+                Set(br, "breakSounds", ClipsStartingWith(B, "DEMOLISH_Short"));
+                Set(br, "breakVfx", Vfx("VFX_ImpactStone"));
+                break;
+            case Breakable.Kind.Rubber:
+                Set(br, "breakSounds", ClipsStartingWith(B, "THUD_Bright"));
+                break;
+            default:
+                Set(br, "hitSounds", ClipsStartingWith(B, "IMPACT_Metal"));
+                Set(br, "breakSounds", ClipsStartingWith(B, "DEMOLISH_Metal").Concat(ClipsStartingWith(B, "IMPACT_Metal_Cylinder")).ToArray());
+                Set(br, "breakVfx", Vfx("VFX_ImpactMetal"));
+                break;
+        }
     }
 
     /// <summary>
@@ -1333,6 +1427,12 @@ public static partial class ZombieGameBuilder
         Set(lm, "maxAliveEnemies", 26);
         Set(lm, "crawlerStandUpWhenLeft", 3);
         SetList(lm, "levelEnvironments", builtEnvironments);
+
+        // In-App Purchases (Unity IAP 5) - Starter Pack ke saath Ripper Blade
+        var iapGo = new GameObject("IAPManager");
+        iapGo.transform.SetParent(managers);
+        var iap = iapGo.AddComponent<IAPManager>();
+        Set(iap, "starterWeapon", AssetDatabase.LoadAssetAtPath<WeaponDataSO>($"{DataDir}/Weapons/Weapon_ripper.asset"));
 
         var tmGo = new GameObject("TimeManager");
         tmGo.transform.SetParent(managers);

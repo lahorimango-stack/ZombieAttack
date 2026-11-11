@@ -18,6 +18,7 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a3e68590478071a40a5319bae2d86802, type: 3}
   themeColor: {r: 0.55, g: 0.85, b: 1, a: 1}
   unlockLevel: 1
+  coinPrice: 0
   weaponPrefab: {fileID: 7172083336863970063, guid: 5ed6d6fb8d5f7b448ae1d139c42cb62c, type: 3}
   spawnInterval: 0.09
   minDistanceBetween: 0.3
@@ -49,6 +50,11 @@ MonoBehaviour:
   ricochetRange: 7
   ricochetDamageFactor: 0.85
   ricochetSounds: []
+  fuseDelay: 0
+  fuseBeepSounds: []
+  clusterCount: 0
+  clusterSpread: 2.2
+  clusterScale: 0.55
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

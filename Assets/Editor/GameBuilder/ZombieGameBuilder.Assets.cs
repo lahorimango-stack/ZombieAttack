@@ -252,7 +252,7 @@ public static partial class ZombieGameBuilder
                 {
                     // Haath mein pakde jaisa: handle player ki taraf, nok zombies ki taraf (thoda upar)
                     d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(68f, 0f, 0f); d.flightVisualEuler = new Vector3(85f, 0f, 0f);
-                    d.unlockLevel = 1; d.spawnInterval = 0.09f; d.minDistanceBetween = 0.3f; d.maxCount = 10;
+                    d.unlockLevel = 1; d.coinPrice = 0; d.spawnInterval = 0.09f; d.minDistanceBetween = 0.3f; d.maxCount = 10;
                     d.launchSpeed = 34f; d.spinAxis = Vector3.right; d.spinSpeed = 0f; // nok aage seedha (dart jaisa)
                     d.lifeTime = 2f; d.hitRadius = 0.28f;
                     d.damage = 36f; d.pierceCount = 0; d.impactForce = 20f;
@@ -277,7 +277,7 @@ public static partial class ZombieGameBuilder
                     // Draw: knife jaisa - aage jhuki (X 68), sar zombies ki taraf, handle player ki taraf
                     d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(68f, 0f, 0f); d.flightVisualEuler = new Vector3(0f, -90f, 0f);
                     d.stickOnHit = true; d.stuckVisualEuler = new Vector3(25f, 0f, 0f); d.stuckDepth = 0.02f; // blade andar, handle neeche latka
-                    d.unlockLevel = 2; d.spawnInterval = 0.13f; d.minDistanceBetween = 0.4f; d.maxCount = 6;
+                    d.unlockLevel = 3; d.coinPrice = 250; d.spawnInterval = 0.13f; d.minDistanceBetween = 0.4f; d.maxCount = 6;
                     d.launchSpeed = 26f; d.spinAxis = Vector3.right; d.spinSpeed = 1440f; d.lifeTime = 2.4f; d.hitRadius = 0.3f;
                     d.damage = 65f; d.pierceCount = 1; d.impactForce = 30f;
                     d.hitVfx = Vfx("VFX_ImpactMetal");
@@ -292,7 +292,7 @@ public static partial class ZombieGameBuilder
                 hovlVisual = "VFX_HovlCrystal", hovlScale = 0.95f, crystalCore = true, theme = new Color(0.45f, 0.75f, 1f),
                 configure = d =>
                 {
-                    d.unlockLevel = 4; d.spawnInterval = 0.09f; d.minDistanceBetween = 0.3f; d.maxCount = 10;
+                    d.unlockLevel = 5; d.coinPrice = 600; d.spawnInterval = 0.09f; d.minDistanceBetween = 0.3f; d.maxCount = 10;
                     d.launchSpeed = 40f; d.spinSpeed = 0f; d.lifeTime = 2f; d.hitRadius = 0.24f;
                     d.damage = 34f; d.pierceCount = 2; d.impactForce = 24f;
                     d.spawnVfx = Vfx("VFX_FlashCrystal"); d.hitVfx = Vfx("VFX_HitCrystal");
@@ -301,14 +301,54 @@ public static partial class ZombieGameBuilder
                     d.hitSounds = stab.Concat(ClipsStartingWith(W, "GORE_Deep_Short_Squirt")).ToArray();
                 }
             },
-            // Fire Bomb ki jagah: RIPPER BLADE - ghoomta steel ka tara, zombie kaat kar agle par uchhal jata hai (3 baar)
+            // BLAST KUNAI: zombie mein phans kar tik-tik... phir dhamaka (aas paas bhi udte hain)
+            new WeaponSpec
+            {
+                id = "kunai", displayName = "Blast Kunai", description = "Sticks into a zombie... beep beep... BOOM!",
+                meshPath = LPS + "Weapons/Melee/SM_Knife_01.fbx", length = 0.45f, faceCamera = true, hovlVisual = "VFX_HovlDagger", hovlScale = 0.4f, theme = new Color(1f, 0.35f, 0.25f),
+                configure = d =>
+                {
+                    d.unlockLevel = 11; d.coinPrice = 2400; d.spawnInterval = 0.1f; d.minDistanceBetween = 0.32f; d.maxCount = 7; d.spawnScale = 1f;
+                    d.useGravity = false; d.ricochetCount = 0; d.clusterCount = 0; d.chainCount = 0; d.fireZoneDuration = 0f;
+                    d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(68f, 0f, 0f); d.flightVisualEuler = new Vector3(85f, 0f, 0f);
+                    d.stickOnHit = true; d.stuckVisualEuler = new Vector3(-5f, 0f, 0f); d.stuckDepth = -0.12f;
+                    d.launchSpeed = 34f; d.spinSpeed = 0f; d.lifeTime = 2f; d.hitRadius = 0.28f;
+                    d.damage = 30f; d.pierceCount = 0; d.impactForce = 26f;
+                    d.explosionRadius = 1.7f; d.explosionDamage = 85f; d.fuseDelay = 0.45f; d.cameraShake = 0.1f;
+                    d.fuseBeepSounds = ClipsStartingWith(P, "HANDLING_Switch");
+                    d.explosionVfx = Vfx("VFX_GrenadeExplosion"); d.explosionSounds = ClipsStartingWith(W, "EXPLOSION_Short");
+                    d.hitVfx = Vfx("VFX_ImpactMetal"); d.hitVfxOnEnemies = false;
+                    d.firstSpawnSounds = bladeShing; d.spawnSounds = tick; d.spawnPitch = 1.2f; d.spawnVolume = 0.5f;
+                    d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Blade");
+                    d.hitSounds = knifeHits;
+                }
+            },
+            // STORM ORB: bijli ka gola - ek ko lage, 4 aur zombies tak bijli koodti hai
+            new WeaponSpec
+            {
+                id = "storm", displayName = "Storm Orb", description = "Lightning jumps from zombie to zombie!",
+                hovlVisual = "VFX_HovlElectric", hovlScale = 0.75f, theme = new Color(0.55f, 0.75f, 1f),
+                configure = d =>
+                {
+                    d.unlockLevel = 14; d.coinPrice = 3200; d.spawnInterval = 0.14f; d.minDistanceBetween = 0.42f; d.maxCount = 6; d.spawnScale = 1f;
+                    d.useGravity = false; d.ricochetCount = 0; d.clusterCount = 0; d.explosionRadius = 0f; d.explosionDamage = 0f; d.fuseDelay = 0f;
+                    d.launchSpeed = 26f; d.spinSpeed = 0f; d.lifeTime = 2.4f; d.hitRadius = 0.35f;
+                    d.damage = 50f; d.pierceCount = 0; d.impactForce = 22f;
+                    d.chainCount = 4; d.chainRadius = 4.5f; d.chainDamageFactor = 0.8f;
+                    d.chainLineMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Hovl Studio/AAA Projectiles Vol 1/Materials/Electricity1be.mat");
+                    d.hitVfx = Vfx("VFX_HitElectric"); d.hitVfxOnEnemies = true;
+                    d.firstSpawnSounds = ClipsStartingWith(P, "ELECTRICITY_Spark"); d.spawnSounds = ClipsStartingWith(P, "ZAP_Bright"); d.spawnPitch = 1f; d.spawnVolume = 0.45f;
+                    d.launchSounds = ClipsStartingWith(P, "ZAP_Deep");
+                    d.hitSounds = ClipsStartingWith(P, "ZAP_Deep").Concat(ClipsStartingWith(P, "ELECTRICITY_Spark")).ToArray();
+                }
+            },            // Fire Bomb ki jagah: RIPPER BLADE - ghoomta steel ka tara, zombie kaat kar agle par uchhal jata hai (3 baar)
             new WeaponSpec
             {
                 id = "ripper", displayName = "Ripper Blade", description = "A spinning steel star. Slices a zombie, then bounces to the next one!",
                 meshPath = "Assets/ThirdParty/Polygon Arsenal/Models/PolyShuriken.FBX", length = 0.42f, hovlVisual = "VFX_HovlWhite", hovlScale = 0.45f, theme = new Color(0.7f, 0.9f, 1f),
                 configure = d =>
                 {
-                    d.unlockLevel = 8; d.spawnInterval = 0.15f; d.minDistanceBetween = 0.45f; d.maxCount = 5; d.spawnScale = 1f;
+                    d.unlockLevel = 9; d.coinPrice = 1700; d.spawnInterval = 0.15f; d.minDistanceBetween = 0.45f; d.maxCount = 5; d.spawnScale = 1f;
                     d.useGravity = false; d.launchUpAngle = 0f; d.fireZoneDuration = 0f; d.explosionRadius = 0f; d.explosionDamage = 0f;
                     // Draw par seedha khara (tara camera ki taraf), udte waqt zameen ke barabar ghoomta (aari jaisa)
                     d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(0f, 0f, 0f); d.flightVisualEuler = new Vector3(90f, 0f, 0f);
@@ -327,7 +367,7 @@ public static partial class ZombieGameBuilder
                 meshPath = LPS + "Projectiles/SM_Grenade_Frag_01.fbx", length = 0.2f, hovlVisual = "VFX_HovlBullet", hovlScale = 0.3f, theme = new Color(0.6f, 1f, 0.4f),
                 configure = d =>
                 {
-                    d.unlockLevel = 6; d.spawnInterval = 0.2f; d.minDistanceBetween = 0.55f; d.maxCount = 4; d.spawnScale = 1.3f;
+                    d.unlockLevel = 7; d.coinPrice = 1100; d.spawnInterval = 0.2f; d.minDistanceBetween = 0.55f; d.maxCount = 4; d.spawnScale = 1.3f;
                     d.launchSpeed = 15f; d.useGravity = true; d.gravity = 14f; d.launchUpAngle = 35f; d.minRange = 6f; d.maxRange = 22f;
                     d.spinAxis = new Vector3(1f, 0.4f, 0.2f); d.spinSpeed = 600f; d.lifeTime = 4f; d.hitRadius = 0.18f;
                     d.damage = 0f; d.explosionRadius = 2.4f; d.explosionDamage = 120f; d.impactForce = 34f; d.cameraShake = 0.18f;
@@ -343,7 +383,7 @@ public static partial class ZombieGameBuilder
                 meshPath = LPS + "Projectiles/SM_RL_Projectile.fbx", length = 0.7f, flightVfx = "VFX_RocketTrail", theme = new Color(1f, 0.35f, 0.3f),
                 configure = d =>
                 {
-                    d.unlockLevel = 9; d.spawnInterval = 0.28f; d.minDistanceBetween = 0.7f; d.maxCount = 3; d.spawnScale = 1f;
+                    d.unlockLevel = 17; d.coinPrice = 4200; d.spawnInterval = 0.28f; d.minDistanceBetween = 0.7f; d.maxCount = 3; d.spawnScale = 1f;
                     d.launchSpeed = 20f; d.alignToVelocity = true; d.spinSpeed = 0f; d.lifeTime = 3f; d.hitRadius = 0.3f;
                     d.damage = 0f; d.explosionRadius = 3f; d.explosionDamage = 200f; d.impactForce = 42f; d.cameraShake = 0.3f;
                     d.explosionVfx = Vfx("VFX_GroundExplosion");
@@ -353,6 +393,25 @@ public static partial class ZombieGameBuilder
                 }
             },
         };
+        // CLUSTER BOMB: bara dhamaka phir 4 chhote (tak-tak-tak) - hujoom saaf
+        specs.Add(new WeaponSpec
+        {
+            id = "cluster", displayName = "Cluster Bomb", description = "One big blast, then four more around it!",
+            meshPath = LPS + "Projectiles/SM_Grenade_Frag_01.fbx", length = 0.26f, hovlVisual = "VFX_HovlYellow", hovlScale = 0.32f, theme = new Color(1f, 0.6f, 0.2f),
+            configure = d =>
+            {
+                d.unlockLevel = 21; d.coinPrice = 5500; d.spawnInterval = 0.25f; d.minDistanceBetween = 0.6f; d.maxCount = 3; d.spawnScale = 1.4f;
+                d.launchSpeed = 15f; d.useGravity = true; d.gravity = 14f; d.launchUpAngle = 35f; d.minRange = 6f; d.maxRange = 22f;
+                d.spinAxis = new Vector3(1f, 0.4f, 0.2f); d.spinSpeed = 600f; d.lifeTime = 4f; d.hitRadius = 0.2f;
+                d.damage = 0f; d.explosionRadius = 2.3f; d.explosionDamage = 110f; d.impactForce = 34f; d.cameraShake = 0.22f;
+                d.clusterCount = 4; d.clusterSpread = 2.4f; d.clusterScale = 0.55f;
+                d.ricochetCount = 0; d.chainCount = 0; d.fuseDelay = 0f; d.fireZoneDuration = 0f;
+                d.explosionVfx = Vfx("VFX_BigExplosion");
+                d.firstSpawnSounds = null; d.spawnSounds = tick; d.spawnPitch = 0.8f; d.spawnVolume = 0.55f;
+                d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Fast_Subtle");
+                d.explosionSounds = ClipsStartingWith(W, "EXPLOSION_Short");
+            }
+        });
         foreach (var spec in specs)
         {
             GameObject prefab = BuildWeaponPrefab(spec);
@@ -379,7 +438,7 @@ public static partial class ZombieGameBuilder
 
     public static WeaponDataSO[] LoadWeaponData()
     {
-        return new[] { "knife", "axe", "crystal", "grenade", "ripper", "rocket" }
+        return new[] { "knife", "axe", "crystal", "grenade", "ripper", "kunai", "storm", "rocket", "cluster" }
             .Select(id => AssetDatabase.LoadAssetAtPath<WeaponDataSO>($"{DataDir}/Weapons/Weapon_{id}.asset"))
             .Where(w => w != null).ToArray();
     }
@@ -525,7 +584,28 @@ public static partial class ZombieGameBuilder
         {
             // Particle-only weapons ka icon unke 3D mesh se (particles preview mein render nahi hote)
             GameObject go;
-            if (spec.crystalCore)
+            if (spec.id == "storm")
+            {
+                // Storm Orb icon: chamakta gola + bahar nikalti bijli ki lakeerein
+                go = new GameObject("OrbIcon");
+                SceneManager.MoveGameObjectToScene(go, preview);
+                var orbMat = GetGlowMaterial("Glow_" + spec.id, spec.theme);
+                var core = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                core.transform.SetParent(go.transform, false);
+                core.transform.localScale = Vector3.one * 0.55f;
+                core.GetComponent<Renderer>().sharedMaterial = orbMat;
+                float[] ang = { 20f, 110f, 200f, 290f };
+                for (int i = 0; i < ang.Length; i++)
+                {
+                    var bolt = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    bolt.transform.SetParent(go.transform, false);
+                    bolt.transform.localScale = new Vector3(0.06f, 0.42f, 0.06f);
+                    bolt.transform.localRotation = Quaternion.Euler(0f, 0f, ang[i] + (i % 2 == 0 ? 12f : -12f));
+                    bolt.transform.localPosition = Quaternion.Euler(0f, 0f, ang[i]) * Vector3.up * 0.42f;
+                    bolt.GetComponent<Renderer>().sharedMaterial = orbMat;
+                }
+            }
+            else if (spec.crystalCore)
             {
                 // Crystal icon: 3 chamakte shards ka cluster
                 go = new GameObject("CrystalIcon");
@@ -1056,6 +1136,76 @@ public static partial class ZombieGameBuilder
             Wave("Wave 1", 1f, 0.75f, Pack(RN, 5, 0.45f, 0.5f, M), Pack(W, 6, 0.5f, 1.5f, M), Pack(WF, 4, 0.55f, 3f, S), Pack(CR, 3, 1f, 4f, F), Pack(DG, 5, 0.3f, 6f, F), Pack(RN, 4, 0.45f, 9f, S)),
             Wave("Wave 2", 2f, 0.75f, Pack(SP, 4, 1f, 0.5f, F), Pack(BR, 2, 4f, 1f, F), Pack(RN, 5, 0.45f, 2f, M), Pack(BM, 2, 2.5f, 3f, F), Pack(W, 5, 0.55f, 1.5f, M), Pack(DG, 5, 0.3f, 7f, F)),
             Wave("BOSS", 2.5f, 1f, Pack("Zombie_Boss", 1, 1f, 0f, F, 1f), Pack(RN, 5, 0.45f, 2f, M), Pack(W, 6, 0.6f, 3f, M), Pack(DG, 6, 0.3f, 6f, F), Pack(BR, 2, 6f, 10f, F), Pack(BM, 2, 4f, 8f, F), Pack(SP, 4, 1.2f, 12f, M), Pack(RN, 5, 0.4f, 15f, M)));
+
+        BuildLaterLevels();
+    }
+    /// <summary>
+    /// Level 11-25: har 5 levels ka block (aasaan -> mushkil -> BOSS), har block pichle se mushkil.
+    /// Tez zombies ~60%. Purane 10 mahaul naye mel mein (naam + aasmaan alag). Seed fixed - har build par wahi levels.
+    /// </summary>
+    private static void BuildLaterLevels()
+    {
+        string[] names = { "Second Wave", "Rust Yard", "Dead Lights", "The Pack Returns", "Butcher Brothers",
+                           "Silent Rain", "Bridge of Bones", "Blackout", "Fever Night", "Return of the King",
+                           "Ash Street", "Hound Storm", "Last Supply", "The Long Night", "Dawn or Death" };
+        string[] subs = { "They learned to run.", "Watch the green ones.", "Something moves in the dark.", "Dogs. Lots of dogs.", "Two Butchers. One street.",
+                          "Hear them before you see them.", "Brutes lead the way.", "Keep throwing!", "Faster than ever.", "He is back... and angrier.",
+                          "Nothing left but fire.", "Hunted from every side.", "Hold the barricade!", "The night never ends.", "Survive until sunrise!" };
+        int[] envs = { 2, 6, 0, 2, 4, 5, 7, 8, 3, 9, 1, 2, 3, 5, 9 };
+        var F = LevelDataSO.SpawnSide.Front; var S = LevelDataSO.SpawnSide.Sides; var M = LevelDataSO.SpawnSide.Mixed;
+
+        for (int n = 11; n <= 25; n++)
+        {
+            int i = n - 11, block = (n - 1) / 5, p = (n - 1) % 5;
+            bool boss = p == 4;
+            var rnd = new System.Random(n * 7919);
+            int R(int a, int b) => rnd.Next(a, b + 1);
+
+            float health = 1.7f + block * 0.22f + p * 0.09f;
+            float speed = Mathf.Min(1.25f, 1.12f + block * 0.02f + p * 0.01f);
+            int cap = Mathf.Min(26, 14 + block * 2 + p * 2);
+            float hp = 220f + (n - 10) * 5f;
+            int coins = (140 + (n - 10) * 15) * (boss ? 2 : 1);
+            int waveCount = boss ? 3 : (p >= 2 ? 4 : 3);
+
+            var waves = new System.Collections.Generic.List<LevelDataSO.WaveData>();
+            for (int w = 0; w < waveCount; w++)
+            {
+                bool last = w == waveCount - 1;
+                int total = 16 + block * 3 + p * 3 + (last ? 6 : 0);
+                int fast = Mathf.RoundToInt(total * 0.6f);
+                int dogs = R(fast / 4, fast / 2), sprint = R(1, Mathf.Max(1, fast / 4)), run = Mathf.Max(2, fast - dogs - sprint);
+                int slow = total - fast;
+                int bomb = (n >= 12 && R(0, 2) > 0) ? R(1, 2) : 0;
+                int brute = (block >= 3 || last) && R(0, 2) > 0 ? R(1, 2) : 0;
+                int crawl = R(0, 3);
+                int walk = Mathf.Max(3, slow - bomb - brute - crawl);
+                var packs = new System.Collections.Generic.List<LevelDataSO.EnemyPackConfig>
+                {
+                    Pack("Zombie_Runner", Mathf.Max(2, run / 2), 0.4f, 0.5f, w == 0 ? F : M),          // shuru mein tez jhatka
+                    Pack(R(0, 1) == 0 ? "Zombie_Walker" : "Zombie_WalkerF", walk, 0.5f, 1.5f, M),
+                    Pack("Zombie_Dog", dogs, 0.3f, R(3, 6), F),
+                    Pack("Zombie_Sprinter", sprint, 1f, R(5, 8), M),
+                    Pack("Zombie_Runner", run - Mathf.Max(2, run / 2), 0.4f, R(9, 12), S),               // beech mein dobara rush
+                };
+                if (crawl > 0) packs.Add(Pack("Zombie_Crawler", crawl, 1.2f, R(2, 5), F));
+                if (bomb > 0) packs.Add(Pack("Zombie_Bomber", bomb, 3f, R(3, 7), F));
+                if (brute > 0) packs.Add(Pack("Zombie_Brute", brute, 4f, R(0, 4), F));
+                if (boss && last)
+                {
+                    if (n == 15) { packs.Insert(0, Pack("Zombie_MiniBoss", 2, 6f, 0f, F, 1f)); }
+                    else if (n == 20) { packs.Insert(0, Pack("Zombie_Boss", 1, 1f, 0f, F, 1f)); }
+                    else { packs.Insert(0, Pack("Zombie_Boss", 1, 1f, 0f, F, 1f)); packs.Insert(1, Pack("Zombie_MiniBoss", 1, 1f, 10f, F, 1f)); }
+                }
+                string name = last ? (boss ? "BOSS" : "Final") : $"Wave {w + 1}";
+                waves.Add(Wave(name, w == 0 ? 1f : 2f, last ? 1f : 0.65f, packs.ToArray()));
+            }
+
+            CreateLevel(n, names[i], subs[i], boss, hp, coins, health, speed, cap, waves.ToArray());
+            var asset = AssetDatabase.LoadAssetAtPath<LevelDataSO>($"{DataDir}/Levels/Level_{n:00}.asset");
+            asset.environmentIndex = envs[i];
+            EditorUtility.SetDirty(asset);
+        }
     }
     private static void CreateLevel(int number, string title, string subtitle, bool boss, float barricadeHp, int coins, float healthMult, float speedMult, int maxAlive, params LevelDataSO.WaveData[] waves)
     {
@@ -1077,12 +1227,13 @@ public static partial class ZombieGameBuilder
         level.enemyHealthMultiplier = healthMult;
         level.enemySpeedMultiplier = speedMult;
         level.maxAliveOnField = maxAlive;
+        level.environmentIndex = -1;
         // L3 se aage agli wave 65% marne par (zyada dabao), L1-2 mein 75% (saans lene ka waqt)
         if (number >= 3) foreach (var w in waves) if (w.waveClearPercentage < 0.99f) w.waveClearPercentage = 0.65f;
         level.waves = waves.ToList();
         EditorUtility.SetDirty(level);
     }
-    public const int LevelCount = 10;
+    public const int LevelCount = 25;
 
     public static LevelDataSO[] LoadLevels()
     {

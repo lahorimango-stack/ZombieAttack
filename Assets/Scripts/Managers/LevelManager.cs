@@ -136,7 +136,7 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 1f;
 
         Barricade.Instance?.ResetHealth(levels.Count > 0 && levels[actualResourceLevelNumber - 1] != null ? levels[actualResourceLevelNumber - 1].barricadeHealth : 100f);
-        ApplyEnvironment(actualResourceLevelNumber);
+        ApplyEnvironment(EnvIndexFor(actualResourceLevelNumber));
         UIManager.Instance?.ShowHome(currentDisplayLevelNumber);
         SoundManager.Instance?.PlayMenuMusic();
     }
@@ -180,8 +180,9 @@ public class LevelManager : MonoBehaviour
         }
         totalAliveEnemiesCount = totalEnemiesInLevel;
 
-        Barricade.Instance?.ResetHealth(currentActiveLevelData.barricadeHealth);
-        ApplyEnvironment(actualResourceLevelNumber);
+        // Armor upgrade: player ki health zyada
+        Barricade.Instance?.ResetHealth(currentActiveLevelData.barricadeHealth * Economy.ArmorMultiplier);
+        ApplyEnvironment(EnvIndexFor(actualResourceLevelNumber));
         GameManager.Instance?.WeaponController?.ClearPendingWeapons();
 
         UIManager.Instance?.ShowGameplayHUD(currentDisplayLevelNumber, currentActiveLevelData);
@@ -483,6 +484,14 @@ public class LevelManager : MonoBehaviour
         }
     }
 
+    /// <summary> Level ka mahaul (11-25 purane mahaul naye mel mein dobara) </summary>
+    private int EnvIndexFor(int levelNumber)
+    {
+        if (levels.Count > 0 && levelNumber >= 1 && levelNumber <= levels.Count && levels[levelNumber - 1] != null && levels[levelNumber - 1].environmentIndex >= 0)
+            return levels[levelNumber - 1].environmentIndex + 1;
+        return levelNumber;
+    }
+
     private void ApplyEnvironment(int levelNumber)
     {
         if (levelEnvironments == null || levelEnvironments.Count == 0) return;
@@ -526,7 +535,9 @@ public class LevelManager : MonoBehaviour
         SetWeaponControllerState(false);
         GameManager.Instance?.TriggerHeavyHaptic();
 
-        int bonus = currentActiveLevelData != null ? currentActiveLevelData.completionCoins : 0;
+        // Jeet ka inaam x stars (3 star = 1.5x) - achha khelne ka faida
+        int stars = Economy.Stars(Barricade.Instance != null ? Barricade.Instance.HealthPercent : 1f);
+        int bonus = currentActiveLevelData != null ? Mathf.RoundToInt(currentActiveLevelData.completionCoins * Economy.StarMultiplier(stars)) : 0;
         CoinsEarnedThisLevel += bonus;
         GameManager.Instance?.AddCoins(bonus);
 

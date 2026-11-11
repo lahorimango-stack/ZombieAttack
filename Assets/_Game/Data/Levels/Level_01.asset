@@ -20,6 +20,7 @@ MonoBehaviour:
   enemyHealthMultiplier: 1.25
   enemySpeedMultiplier: 1
   maxAliveOnField: 8
+  environmentIndex: -1
   barricadeHealth: 150
   completionCoins: 40
   waves:

@@ -32,8 +32,8 @@ HOW TO PLAY
 • Release to throw
 • Kill every zombie before your health runs out
 
-10 LEVELS, 10 BATTLEGROUNDS
-Fight from a quiet street to a burning hell gate. Each level has its own place, sky, weather and enemy mix: a crawling night, a hound hunt, a thunderstorm, a toxic zone and more. Difficulty rises and falls, so tense battles are followed by a moment to breathe.
+25 LEVELS
+Fight from a quiet street to a burning hell gate and beyond. Each level has its own place, sky, weather and enemy mix: a crawling night, a hound hunt, a thunderstorm, a toxic zone and more. Difficulty rises and falls, so tense battles are followed by a moment to breathe.
 
 ZOMBIES THAT KEEP YOU MOVING
 • Runners sprint straight at you
@@ -44,11 +44,11 @@ ZOMBIES THAT KEEP YOU MOVING
 • Mini-boss: The Butcher
 • Final boss: King of the Dead
 
-6 WEAPONS TO UNLOCK
-Knife, Axe, Crystal Spear, Grenade, Ripper Blade and Rocket. The Ripper Blade slices a zombie and bounces to the next one. Each weapon has its own damage, speed and area.
+9 WEAPONS TO UNLOCK AND UPGRADE
+Knife, Axe, Crystal Spear, Grenade, Ripper Blade, Blast Kunai, Storm Orb, Rocket and Cluster Bomb. Bounce blades between zombies, stick explosive kunai into them, or chain lightning through the horde. Upgrade every weapon and your armor in the Armory.
 
-USE THE STREET
-Shoot explosive barrels and cars to wipe out whole groups in one blast.
+SMASH THE STREET
+Shoot explosive barrels and cars to wipe out whole groups in one blast. Wooden barricades, crates and tires break apart when you hit them.
 
 CINEMATIC FINAL KILLS
 The last kill plays in slow motion from dramatic camera angles.
@@ -61,7 +61,7 @@ Contains blood and zombie violence.
 Target age groups:             16-17 aur 18+ (13 se kam bilkul select na karein)
 Bachon ke liye hai?            Nahi. Realistic zombies, khoon aur ragdoll hain.
 Ads:                           Nahi (project mein ad SDK nahi mila. Baad mein lagayein to update karein)
-In-app purchases:              Nahi
+In-app purchases:              HAAN (coin packs + Starter Pack - neeche section 7)
 
 Content rating questionnaire (sach bataein, final rating isi se banegi):
   Violence:                    Haan
@@ -76,6 +76,8 @@ Expected rating:               Andaza Teen/Mature (PEGI 16-18). Yeh sirf andaza 
 
 Data safety:
   Hamara game code data collect nahi karta.
+  In-app purchases Google Play Billing se hoti hain (payment Google sambhalta hai).
+  Data safety form mein "Purchase history" ke baare mein Google ki guidance dekh kar sahi jawab dein.
   Form bharne se pehle Unity ki analytics aur diagnostics settings check karein.
   Ads ya analytics baad mein lagayein to form dobara update karein.
 
@@ -126,3 +128,21 @@ BUILD:
 [ ] Keystore ka password mehfooz jagah likh lein
 [ ] Version number release ke liye set karein
 [ ] Phone par poora game test karein
+
+7. IN-APP PRODUCTS (Play Console > Monetize > In-app products)
+----------------------------------------------------
+Product ID bilkul yahi likhein (game inhi IDs se dhoondta hai):
+
+Product ID                                   Type             Inaam              Qeemat (mashwara)
+com.bradfordgames.lastthrow.coins_small      Consumable       1,200 coins        $0.99
+com.bradfordgames.lastthrow.coins_medium     Consumable       7,000 coins        $4.99
+com.bradfordgames.lastthrow.coins_large      Consumable       16,000 coins       $9.99
+com.bradfordgames.lastthrow.starter_pack     Non-consumable   5,000 coins +      $2.99
+                                                              Ripper Blade +
+                                                              2 Armor levels
+
+Notes:
+- Qeematein aap ka faisla hain; game Play Store ki asli (local currency) qeemat khud dikhata hai.
+- Products ko "Active" karna zaroori hai, warna shop mein "N/A" aayega.
+- Test ke liye Play Console mein "License testers" mein apna Gmail daalein (asli paise nahi katte).
+- App par pehle ek internal/closed testing build upload karni hogi, tab hi products test hote hain.

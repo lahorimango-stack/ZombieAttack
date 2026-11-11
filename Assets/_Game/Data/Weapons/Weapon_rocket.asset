@@ -17,7 +17,8 @@ MonoBehaviour:
   description: Massive blast radius. Clears a crowd.
   icon: {fileID: 21300000, guid: cb1a8a371faf0d648b9e28000732e501, type: 3}
   themeColor: {r: 1, g: 0.35, b: 0.3, a: 1}
-  unlockLevel: 9
+  unlockLevel: 17
+  coinPrice: 4200
   weaponPrefab: {fileID: 1402433021160461889, guid: 771844a3c11857a499aa25de180428cf, type: 3}
   spawnInterval: 0.28
   minDistanceBetween: 0.7
@@ -49,6 +50,11 @@ MonoBehaviour:
   ricochetRange: 7
   ricochetDamageFactor: 0.85
   ricochetSounds: []
+  fuseDelay: 0
+  fuseBeepSounds: []
+  clusterCount: 0
+  clusterSpread: 2.2
+  clusterScale: 0.55
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

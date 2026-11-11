@@ -30,6 +30,9 @@ public class ThrownWeapon : MonoBehaviour
     private int pierceLeft;
     private int ricochetLeft;
     private float damageScale = 1f;
+    private float upgrade = 1f;
+    private float Dmg => Data.damage * upgrade;
+    private float ExDmg => Data.explosionDamage * upgrade;
     private bool finished;
     private readonly HashSet<HumanoidEnemy> alreadyHit = new HashSet<HumanoidEnemy>();
 
@@ -49,6 +52,7 @@ public class ThrownWeapon : MonoBehaviour
         pierceLeft = data != null ? data.pierceCount : 0;
         ricochetLeft = data != null ? data.ricochetCount : 0;
         damageScale = 1f;
+        upgrade = data != null && !IsDummy ? Economy.DamageMultiplier(data) : 1f; // weapon upgrade (+12% har level)
         if (data != null && data.useVisualEulers && visualRoot != null && visualRoot != transform)
             visualRoot.localRotation = Quaternion.Euler(data.drawnVisualEuler);
         RestartVisualParticles();
@@ -243,7 +247,7 @@ public class ThrownWeapon : MonoBehaviour
 
         HumanoidEnemy enemy = hit.collider.GetComponentInParent<HumanoidEnemy>();
         if (enemy == null || alreadyHit.Contains(enemy)) return;
-        float dmg = Data.damage + Data.explosionDamage;
+        float dmg = Dmg + ExDmg;
         if (!KillCam.Instance.WantsKill(enemy, dmg)) return;
 
         killCamChecked = true;
@@ -271,12 +275,22 @@ public class ThrownWeapon : MonoBehaviour
 
             if (Data.explosionRadius > 0f)
             {
+                // Blast Kunai: pehle zombie mein phanso (tik... tik...), phir dhamaka
+                if (Data.fuseDelay > 0f)
+                {
+                    enemy.TakeDamage(Dmg, hit.point, velocity.normalized * Data.impactForce * 0.5f);
+                    Transform stuck = visualRoot != transform ? visualRoot : null;
+                    StickInto(hit);
+                    ClusterRunner.Fuse(stuck, hit.point, Data, ExDmg, enemyMask);
+                    Finish();
+                    return false;
+                }
                 Explode(hit.point);
                 Finish();
                 return false;
             }
 
-            enemy.TakeDamage(Data.damage * damageScale, hit.point, velocity.normalized * Data.impactForce);
+            enemy.TakeDamage(Dmg * damageScale, hit.point, velocity.normalized * Data.impactForce);
             if (Data.hitVfxOnEnemies) SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 2f);
             SoundManager.Instance?.PlayRandomSFX(Data.hitSounds, 0.9f, 1.1f, 0.8f);
             if (Data.chainCount > 0) ChainLightning(enemy, hit.point);
@@ -300,14 +314,14 @@ public class ThrownWeapon : MonoBehaviour
         if (damageable != null)
         {
             // Drum sirf SEEDHE hit par phate - zombie par chalaya weapon drum ko chhoo kar na phaade (QA report)
-            var barrel = hit.collider.GetComponentInParent<ExplosiveBarrel>();
-            if (barrel != null)
+            // Drum / tootne wali cheez: sirf weapon ki BEECH wali lakeer lage to (kinare se chhoo kar guzarna = aage jao)
+            bool prop = hit.collider.GetComponentInParent<ExplosiveBarrel>() != null || hit.collider.GetComponentInParent<Breakable>() != null;
+            if (prop)
             {
-                Vector3 toC = barrel.transform.position - pos; toC.y = 0f;
-                Vector3 d = new Vector3(velocity.x, 0f, velocity.z).normalized;
-                if (Mathf.Abs(Vector3.Cross(d, toC).y) > 0.26f) return true; // sirf kinara chhua - aage guzar jao
+                Vector3 d = velocity.sqrMagnitude > 0.01f ? velocity.normalized : transform.forward;
+                if (!hit.collider.Raycast(new Ray(pos - d * 0.6f, d), out _, 1.6f)) return true;
             }
-            damageable.TakeDamage(Data.damage + Data.explosionDamage, hit.point, velocity.normalized * Data.impactForce);
+            damageable.TakeDamage(Dmg + ExDmg, hit.point, velocity.normalized * Data.impactForce);
             SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 1.5f);
             Finish();
             return false;
@@ -377,8 +391,12 @@ public class ThrownWeapon : MonoBehaviour
 
     private void Explode(Vector3 point)
     {
-        Explosions.Detonate(point, Data.explosionRadius, Data.explosionDamage, Data.impactForce, enemyMask,
+        Explosions.Detonate(point, Data.explosionRadius, ExDmg, Data.impactForce, enemyMask,
                             Data.explosionVfx, Data.explosionSounds, Data.cameraShake);
+
+        // Cluster Bomb: aas paas chhote bam ek ke baad ek (tak-tak-tak dhamake)
+        if (Data.clusterCount > 0)
+            ClusterRunner.Run(point, Data, ExDmg, enemyMask);
 
         if (Data.fireZoneDuration > 0f)
         {
@@ -417,7 +435,7 @@ public class ThrownWeapon : MonoBehaviour
             Vector3 to = best.transform.position + Vector3.up * 1.2f;
             DrawBolt(from, to);
             SpawnVfx(Data.hitVfx, to, (from - to).normalized, 1.5f);
-            best.TakeDamage(Data.damage * Data.chainDamageFactor, to, (to - from).normalized * Data.impactForce * 0.5f);
+            best.TakeDamage(Dmg * Data.chainDamageFactor, to, (to - from).normalized * Data.impactForce * 0.5f);
             from = to;
             current = best;
         }

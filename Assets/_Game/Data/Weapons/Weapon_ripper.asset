@@ -17,7 +17,8 @@ MonoBehaviour:
   description: A spinning steel star. Slices a zombie, then bounces to the next one!
   icon: {fileID: 21300000, guid: 14a57f9557d0d334ea3b48e347732248, type: 3}
   themeColor: {r: 0.7, g: 0.9, b: 1, a: 1}
-  unlockLevel: 8
+  unlockLevel: 9
+  coinPrice: 1700
   weaponPrefab: {fileID: 3078875777824322623, guid: 8939d3a6c57d71c46aa703180d4601cb, type: 3}
   spawnInterval: 0.15
   minDistanceBetween: 0.45
@@ -52,6 +53,11 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 94d8db37e3036cc49bc6a9a678f5143d, type: 3}
   - {fileID: 8300000, guid: af8f4f0a50f6d60479756d98f98bcf8c, type: 3}
   - {fileID: 8300000, guid: 3bc71a5522bad974eb4103f8b5b258cf, type: 3}
+  fuseDelay: 0
+  fuseBeepSounds: []
+  clusterCount: 0
+  clusterSpread: 2.2
+  clusterScale: 0.55
   chainCount: 0
   chainRadius: 4
   chainDamageFactor: 0.7

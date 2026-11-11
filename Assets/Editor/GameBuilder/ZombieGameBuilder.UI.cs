@@ -24,6 +24,7 @@ public static partial class ZombieGameBuilder
         fontRegular = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ThirdParty/CasualUI/Fonts/LilitaOne-Regular SDF.asset");
         fontOutline = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ThirdParty/CasualUI/Fonts/LilitaOne-Regular Outline 72 SDF.asset");
         if (fontOutline == null) fontOutline = fontRegular;
+        ImportGameIcons(); // shop/coin/chest icons sprite bano (Home bhi istemal karta hai)
 
         // Canvas + EventSystem
         var canvasGo = new GameObject("UI Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -53,6 +54,7 @@ public static partial class ZombieGameBuilder
         BuildHome(safe, ui);
         BuildTopBar(safe, ui);
         BuildWeaponPanel(safe, ui);
+        BuildShopPanel(safe, ui);
         BuildSettingsPanel(safe, ui);
         BuildPausePanel(safe, ui);
         BuildWinPanel(safe, ui);
@@ -332,7 +334,15 @@ public static partial class ZombieGameBuilder
         var weaponIcon = Img(weaponBtn.transform, "Icon", null, new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), Color.white, new Vector2(230f, 230f));
         weaponIcon.preserveAspect = true;
         var weaponName = Txt(weaponBtn.transform, "Name", "KNIFE", 44f, new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(320f, 60f), TextWhite, TextAlignmentOptions.Center, true);
-        Txt(home, "ChangeHint", "TAP TO CHANGE WEAPON", 34f, new Vector2(0.5f, 0f), new Vector2(0f, 500f), new Vector2(700f, 50f), new Color(1f, 1f, 1f, 0.8f), TextAlignmentOptions.Center);
+        // Shop: weapon card ke daayen (free crate tayyar ho to laal dot)
+        var shopBtn = Btn(home, "ShopButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(0.5f, 0f), new Vector2(345f, 760f), new Vector2(190f, 190f), null, 0f, ui.OnShopButtonClicked);
+        var shopIcon = Img(shopBtn.transform, "Icon", GameIcon("icon_shop"), new Vector2(0.5f, 0.5f), new Vector2(0f, 14f), Color.white, new Vector2(120f, 115f));
+        shopIcon.preserveAspect = true;
+        Txt(shopBtn.transform, "Label", "SHOP", 34f, new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(180f, 44f), TextWhite, TextAlignmentOptions.Center, true);
+        var badgeDot = Img(shopBtn.transform, "Badge", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(1f, 1f), new Vector2(-24f, -24f), new Color(1f, 0.25f, 0.2f), new Vector2(46f, 46f));
+        Txt(badgeDot.transform, "Excl", "!", 32f, new Vector2(0.5f, 0.5f), new Vector2(0f, 2f), new Vector2(40f, 40f), TextWhite, TextAlignmentOptions.Center, true);
+        Set(ui, "shopBadge", badgeDot.gameObject);
+        Txt(home, "ChangeHint", "TAP FOR ARMORY", 34f, new Vector2(0.5f, 0f), new Vector2(0f, 500f), new Vector2(700f, 50f), new Color(1f, 1f, 1f, 0.8f), TextAlignmentOptions.Center);
 
         // Play button (pulse wrapper)
         var pulse = Rect("PlayPulse", home, new Vector2(0.5f, 0f), new Vector2(0f, 320f), new Vector2(660f, 220f));
@@ -436,15 +446,28 @@ public static partial class ZombieGameBuilder
 
     private static void BuildWeaponPanel(RectTransform safe, UIManager ui)
     {
-        var (panel, window) = Popup(safe, "WeaponPanel", UISprite("Popup_Frame01_Navy"), new Vector2(980f, 1420f), "WEAPONS", UISprite("Label_TitleRibbon_Yellow"));
+        var (panel, window) = Popup(safe, "WeaponPanel", UISprite("Popup_Frame01_Navy"), new Vector2(980f, 1460f), "ARMORY", UISprite("Label_TitleRibbon_Yellow"));
 
-        var grid = Rect("Grid", window, new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(880f, 1220f));
+        // 9 weapons: scroll (ungli se upar neeche)
+        var scroll = Rect("Scroll", window, new Vector2(0.5f, 0.5f), new Vector2(0f, -55f), new Vector2(920f, 1260f));
+        var hit = scroll.gameObject.AddComponent<Image>(); hit.color = new Color(0f, 0f, 0f, 0f);
+        scroll.gameObject.AddComponent<RectMask2D>();
+        var sr = scroll.gameObject.AddComponent<ScrollRect>();
+        sr.horizontal = false; sr.movementType = ScrollRect.MovementType.Elastic; sr.scrollSensitivity = 30f;
+
+        var grid = Rect("Grid", scroll);
+        grid.anchorMin = new Vector2(0.5f, 1f); grid.anchorMax = new Vector2(0.5f, 1f); grid.pivot = new Vector2(0.5f, 1f);
+        grid.anchoredPosition = Vector2.zero; grid.sizeDelta = new Vector2(880f, 0f);
         var layout = grid.gameObject.AddComponent<GridLayoutGroup>();
-        layout.cellSize = new Vector2(410f, 380f);
+        layout.cellSize = new Vector2(415f, 440f);
         layout.spacing = new Vector2(30f, 30f);
+        layout.padding = new RectOffset(0, 0, 24, 30);
         layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         layout.constraintCount = 2;
         layout.childAlignment = TextAnchor.UpperCenter;
+        grid.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        sr.content = grid;
+        sr.viewport = scroll;
 
         var cards = new List<WeaponCardUI>();
         foreach (var weapon in LoadWeaponData())
@@ -467,22 +490,36 @@ public static partial class ZombieGameBuilder
         button.targetGraphic = frame;
         card.gameObject.AddComponent<UIButtonFeedback>();
 
-        var icon = Img(card, "Icon", weapon.icon, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), Color.white, new Vector2(190f, 190f));
+        var icon = Img(card, "Icon", weapon.icon, new Vector2(0.5f, 1f), new Vector2(0f, -115f), Color.white, new Vector2(165f, 165f));
         icon.preserveAspect = true;
-        var name = Txt(card, "Name", weapon.displayName.ToUpper(), 44f, new Vector2(0.5f, 0.5f), new Vector2(0f, -30f), new Vector2(380f, 56f), TextWhite, TextAlignmentOptions.Center, true);
+        var name = Txt(card, "Name", weapon.displayName.ToUpper(), 40f, new Vector2(0.5f, 1f), new Vector2(0f, -222f), new Vector2(390f, 52f), TextWhite, TextAlignmentOptions.Center, true);
+        name.enableAutoSizing = true; name.fontSizeMin = 26f; name.fontSizeMax = 40f;
+        var level = Txt(card, "Level", "LV 1", 30f, new Vector2(0f, 1f), new Vector2(62f, -38f), new Vector2(110f, 40f), TextYellow, TextAlignmentOptions.Left, true);
 
         // Stats
-        var stats = Rect("Stats", card, new Vector2(0.5f, 0f), new Vector2(0f, 62f), new Vector2(360f, 100f));
+        var stats = Rect("Stats", card, new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(360f, 96f));
         Image dmg = StatBar(stats, "DMG", 30f, out TMP_Text dmgVal);
         Image spd = StatBar(stats, "SPD", 0f, out TMP_Text spdVal);
         Image area = StatBar(stats, "AREA", -30f, out TMP_Text areaVal);
+
+        // BUY / UPGRADE button: label + coin + qeemat
+        var act = Img(card, "Action", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0f), new Vector2(0f, 56f), Color.white, new Vector2(350f, 82f));
+        act.raycastTarget = true;
+        var actBtn = act.gameObject.AddComponent<Button>();
+        actBtn.targetGraphic = act;
+        act.gameObject.AddComponent<UIButtonFeedback>();
+        var actLabel = Txt(act.transform, "Label", "UPGRADE", 32f, new Vector2(0f, 0.5f), new Vector2(105f, 6f), new Vector2(190f, 50f), TextWhite, TextAlignmentOptions.Center, true);
+        actLabel.enableAutoSizing = true; actLabel.fontSizeMin = 22f; actLabel.fontSizeMax = 32f;
+        Img(act.transform, "Coin", UISprite("StatusBarIcon_Gold"), new Vector2(1f, 0.5f), new Vector2(-122f, 6f), Color.white, new Vector2(48f, 48f));
+        var actCost = Txt(act.transform, "Cost", "250", 32f, new Vector2(1f, 0.5f), new Vector2(-56f, 6f), new Vector2(90f, 50f), TextYellow, TextAlignmentOptions.Center, true);
+        actCost.enableAutoSizing = true; actCost.fontSizeMin = 20f; actCost.fontSizeMax = 32f;
 
         // Locked overlay
         var locked = Rect("Locked", card);
         StretchFull(locked);
         Img(locked, "Lock", UISprite("Icon_ImageIcon_Lock01_m"), new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), Color.white, new Vector2(130f, 130f));
-        var lockText = Txt(locked, "Text", "LEVEL 2", 40f, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(380f, 60f), TextYellow, TextAlignmentOptions.Center, true);
-        Txt(locked, "Hint", "UNLOCKS AT", 30f, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(380f, 50f), TextWhite, TextAlignmentOptions.Center);
+        var lockText = Txt(locked, "Text", "LEVEL 2", 40f, new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(380f, 60f), TextYellow, TextAlignmentOptions.Center, true);
+        Txt(locked, "Hint", "UNLOCKS AT", 30f, new Vector2(0.5f, 0f), new Vector2(0f, 140f), new Vector2(380f, 50f), TextWhite, TextAlignmentOptions.Center);
 
         // Equipped badge
         var badge = Img(card, "Equipped", UISprite("Label_TitleRibbon_Green"), new Vector2(0.5f, 1f), new Vector2(0f, -10f), Color.white, new Vector2(300f, 84f));
@@ -504,12 +541,108 @@ public static partial class ZombieGameBuilder
         Set(ui, "lockedRoot", locked.gameObject);
         Set(ui, "lockedText", lockText);
         Set(ui, "equippedBadge", badge.gameObject);
+        Set(ui, "actionButton", actBtn);
+        Set(ui, "actionImage", act);
+        Set(ui, "actionLabel", actLabel);
+        Set(ui, "actionCost", actCost);
+        Set(ui, "levelText", level);
+        Set(ui, "buySprite", UISprite("Btn_MainButton_Green"));
+        Set(ui, "upgradeSprite", UISprite("Btn_MainButton_Orange"));
+        Set(ui, "disabledSprite", UISprite("Btn_MainButton_Gray"));
         Set(ui, "normalFrame", UISprite("Frame_CardFrame03_Blue"));
         Set(ui, "selectedFrame", UISprite("Frame_CardFrame03_Green"));
         Set(ui, "lockedFrame", UISprite("Frame_CardFrame03_Dim"));
         return ui;
     }
 
+    private static Sprite GameIcon(string name) => AssetDatabase.LoadAllAssetsAtPath($"Assets/_Game/UI/Icons/{name}.png").OfType<Sprite>().FirstOrDefault();
+
+    /// <summary> Icons ko sprite banao (pehli dafa) </summary>
+    private static void ImportGameIcons()
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/_Game/UI/Icons" }))
+        {
+            var ti = AssetImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guid)) as TextureImporter;
+            if (ti == null || (ti.textureType == TextureImporterType.Sprite && ti.spriteImportMode == SpriteImportMode.Single)) continue;
+            var st = new TextureImporterSettings(); ti.ReadTextureSettings(st);
+            st.spriteMode = (int)SpriteImportMode.Single;
+            ti.SetTextureSettings(st);
+            ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single;
+            ti.alphaIsTransparency = true; ti.mipmapEnabled = false;
+            ti.SaveAndReimport();
+        }
+    }
+
+    /// <summary> SHOP: free crate, starter pack, 3 coin packs, armor </summary>
+    private static void BuildShopPanel(RectTransform safe, UIManager ui)
+    {
+        ImportGameIcons();
+        var (panel, window) = Popup(safe, "ShopPanel", UISprite("Popup_Frame01_Navy"), new Vector2(980f, 1380f), "SHOP", UISprite("Label_TitleRibbon_Orange"));
+        var shop = panel.gameObject.AddComponent<ShopUI>();
+
+        // 1. Free daily crate
+        var daily = Img(window, "Daily", UISprite("Frame_CardFrame03_Blue"), new Vector2(0.5f, 1f), new Vector2(0f, -230f), Color.white, new Vector2(880f, 200f));
+        var chest = Img(daily.transform, "Chest", GameIcon("icon_chest"), new Vector2(0f, 0.5f), new Vector2(110f, 0f), Color.white, new Vector2(150f, 140f));
+        chest.preserveAspect = true;
+        Txt(daily.transform, "Title", "FREE DAILY CRATE", 44f, new Vector2(0f, 0.5f), new Vector2(380f, 32f), new Vector2(400f, 56f), TextWhite, TextAlignmentOptions.Left, true);
+        var dailyAmt = Txt(daily.transform, "Amount", "+100", 44f, new Vector2(0f, 0.5f), new Vector2(330f, -30f), new Vector2(300f, 56f), TextYellow, TextAlignmentOptions.Left, true);
+        var dailyBtn = Btn(daily.transform, "Claim", UISprite("Btn_MainButton_Green"), new Vector2(1f, 0.5f), new Vector2(-150f, 0f), new Vector2(240f, 110f), "CLAIM", 40f, null);
+        var dailyLbl = dailyBtn.GetComponentInChildren<TMP_Text>();
+
+        // 2. Starter pack
+        var starter = Img(window, "StarterPack", UISprite("Frame_CardFrame03_Green"), new Vector2(0.5f, 1f), new Vector2(0f, -470f), Color.white, new Vector2(880f, 240f));
+        var bag = Img(starter.transform, "Bag", GameIcon("icon_bag"), new Vector2(0f, 0.5f), new Vector2(110f, 6f), Color.white, new Vector2(150f, 145f));
+        bag.preserveAspect = true;
+        Txt(starter.transform, "Title", "STARTER PACK", 46f, new Vector2(0f, 0.5f), new Vector2(390f, 60f), new Vector2(420f, 60f), TextYellow, TextAlignmentOptions.Left, true);
+        Txt(starter.transform, "Desc", "5,000 COINS\nRIPPER BLADE + 2 ARMOR", 30f, new Vector2(0f, 0.5f), new Vector2(390f, -30f), new Vector2(420f, 90f), TextWhite, TextAlignmentOptions.Left, true);
+        var starterBtn = Btn(starter.transform, "Buy", UISprite("Btn_MainButton_Orange"), new Vector2(1f, 0.5f), new Vector2(-150f, 0f), new Vector2(240f, 110f), "...", 36f, null);
+
+        // 3. Coin packs
+        var packBtns = new Button[3]; var packPrices = new TMP_Text[3]; var packAmts = new TMP_Text[3];
+        string[] packIcons = { "icon_gold", "icon_golds", "icon_chest" };
+        for (int i = 0; i < 3; i++)
+        {
+            var card = Img(window, "Pack" + i, UISprite("Frame_CardFrame03_Blue"), new Vector2(0.5f, 1f), new Vector2(-295f + i * 295f, -810f), Color.white, new Vector2(275f, 360f));
+            var ic = Img(card.transform, "Icon", GameIcon(packIcons[i]), new Vector2(0.5f, 1f), new Vector2(0f, -95f), Color.white, new Vector2(150f, 130f));
+            ic.preserveAspect = true;
+            packAmts[i] = Txt(card.transform, "Amount", "1,200", 44f, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(250f, 56f), TextYellow, TextAlignmentOptions.Center, true);
+            Txt(card.transform, "Coins", "COINS", 26f, new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(250f, 36f), TextWhite, TextAlignmentOptions.Center);
+            packBtns[i] = Btn(card.transform, "Buy", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(230f, 90f), "...", 32f, null);
+            packPrices[i] = packBtns[i].GetComponentInChildren<TMP_Text>();
+        }
+
+        // 4. Armor
+        var armor = Img(window, "Armor", UISprite("Frame_CardFrame03_Blue"), new Vector2(0.5f, 1f), new Vector2(0f, -1135f), Color.white, new Vector2(880f, 200f));
+        var shield = Img(armor.transform, "Shield", GameIcon("icon_shield"), new Vector2(0f, 0.5f), new Vector2(105f, 0f), Color.white, new Vector2(130f, 140f));
+        shield.preserveAspect = true;
+        var armorLvl = Txt(armor.transform, "Level", "ARMOR LV 1", 38f, new Vector2(0f, 0.5f), new Vector2(395f, 22f), new Vector2(430f, 56f), TextWhite, TextAlignmentOptions.Left, true);
+        armorLvl.enableAutoSizing = true; armorLvl.fontSizeMin = 24f; armorLvl.fontSizeMax = 38f;
+        Txt(armor.transform, "Desc", "MORE HEALTH EVERY LEVEL", 26f, new Vector2(0f, 0.5f), new Vector2(395f, -30f), new Vector2(430f, 40f), new Color(1f, 1f, 1f, 0.75f), TextAlignmentOptions.Left);
+        var armorBtn = Btn(armor.transform, "Upgrade", UISprite("Btn_MainButton_Orange"), new Vector2(1f, 0.5f), new Vector2(-150f, 0f), new Vector2(240f, 110f), null, 0f, null);
+        Img(armorBtn.transform, "Coin", UISprite("StatusBarIcon_Gold"), new Vector2(0f, 0.5f), new Vector2(50f, 6f), Color.white, new Vector2(56f, 56f));
+        var armorCost = Txt(armorBtn.transform, "Cost", "120", 38f, new Vector2(0.5f, 0.5f), new Vector2(30f, 6f), new Vector2(140f, 56f), TextYellow, TextAlignmentOptions.Center, true);
+
+        var msg = Txt(window, "Message", "", 36f, new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(860f, 56f), TextYellow, TextAlignmentOptions.Center, true);
+
+        CloseButton(window, ui.OnCloseShop);
+        panel.gameObject.SetActive(false);
+
+        Set(shop, "dailyButton", dailyBtn);
+        Set(shop, "dailyLabel", dailyLbl);
+        Set(shop, "dailyAmount", dailyAmt);
+        Set(shop, "dailyIcon", chest.transform);
+        Set(shop, "starterRoot", starter.gameObject);
+        Set(shop, "starterButton", starterBtn);
+        Set(shop, "starterPrice", starterBtn.GetComponentInChildren<TMP_Text>());
+        SetList(shop, "packButtons", packBtns);
+        SetList(shop, "packPrices", packPrices);
+        SetList(shop, "packAmounts", packAmts);
+        Set(shop, "armorButton", armorBtn);
+        Set(shop, "armorLevelText", armorLvl);
+        Set(shop, "armorCost", armorCost);
+        Set(shop, "messageText", msg);
+        Set(ui, "shopPanel", panel.gameObject);
+    }
     private static Image StatBar(RectTransform parent, string label, float y, out TMP_Text value)
     {
         Txt(parent, label + "_Label", label, 26f, new Vector2(0f, 0.5f), new Vector2(45f, y), new Vector2(90f, 30f), new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Left);
@@ -600,8 +733,11 @@ public static partial class ZombieGameBuilder
         Txt(window, "Title", "THE ZOMBIES\nGOT YOU!", 70f, new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), new Vector2(820f, 200f), TextRed, TextAlignmentOptions.Center, true);
         var info = Txt(window, "Info", "Zombies killed: 0/0", 46f, new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(820f, 70f), TextWhite, TextAlignmentOptions.Center, true);
 
-        Btn(window, "RetryButton", UISprite("Btn_MainButton_Orange"), new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(600f, 180f), "TRY AGAIN", 78f, ui.OnRestartButtonClicked);
-        Btn(window, "HomeButton", UISprite("Btn_MainButton_Gray"), new Vector2(0.5f, 0.5f), new Vector2(0f, -330f), new Vector2(420f, 130f), "HOME", 60f, ui.OnHomeButtonClicked);
+        Btn(window, "RetryButton", UISprite("Btn_MainButton_Orange"), new Vector2(0.5f, 0.5f), new Vector2(0f, -120f), new Vector2(600f, 170f), "TRY AGAIN", 74f, ui.OnRestartButtonClicked);
+        // Haar ke baad seedha upgrade (Armory) - mazboot ho kar wapis
+        Btn(window, "UpgradeButton", UISprite("Btn_MainButton_Green"), new Vector2(0.5f, 0.5f), new Vector2(110f, -300f), new Vector2(380f, 130f), "UPGRADE", 56f, ui.OnUpgradeFromFail);
+        var homeFail = Btn(window, "HomeButton", UISprite("Btn_OtherButton_Circle01_n"), new Vector2(0.5f, 0.5f), new Vector2(-200f, -300f), new Vector2(130f, 130f), null, 0f, ui.OnHomeButtonClicked);
+        Img(homeFail.transform, "Icon", UISprite("Icon_PictoIcon_Home"), new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), Color.white, new Vector2(74f, 74f));
 
         panel.gameObject.SetActive(false);
         Set(ui, "failPanel", panel.gameObject);

@@ -50,6 +50,11 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject weaponPanel;
     [SerializeField] private List<WeaponCardUI> weaponCards = new List<WeaponCardUI>();
 
+    [Header("--- 5b. Shop ---")]
+    [SerializeField] private GameObject shopPanel;
+    [Tooltip("Home par shop button ka laal dot (free crate tayyar)")]
+    [SerializeField] private GameObject shopBadge;
+
     [Header("--- 6. Settings & Pause ---")]
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject pausePanel;
@@ -90,7 +95,7 @@ public class UIManager : MonoBehaviour
         HideAllPanels();
 
         foreach (var card in weaponCards)
-            if (card != null) card.OnClicked += OnWeaponCardClicked;
+            if (card != null) { card.OnClicked += OnWeaponCardClicked; card.OnAction += OnWeaponCardAction; }
 
         if (GameManager.Instance != null)
         {
@@ -304,7 +309,9 @@ public class UIManager : MonoBehaviour
             if (unlockedWeapon != null)
             {
                 if (unlockIcon != null) unlockIcon.sprite = unlockedWeapon.icon;
-                if (unlockNameText != null) unlockNameText.text = $"NEW WEAPON: {unlockedWeapon.displayName.ToUpper()}";
+                if (unlockNameText != null) unlockNameText.text = Economy.IsOwned(unlockedWeapon)
+                    ? $"NEW WEAPON: {unlockedWeapon.displayName.ToUpper()}"
+                    : $"NEW WEAPON IN ARMORY:\n{unlockedWeapon.displayName.ToUpper()}";
                 unlockRoot.transform.localScale = Vector3.zero;
                 unlockRoot.transform.DOScale(1f, 0.4f).SetEase(Ease.OutBack).SetDelay(1.1f).SetUpdate(true)
                     .OnStart(() => SoundManager.Instance?.PlayUnlock());
@@ -331,6 +338,7 @@ public class UIManager : MonoBehaviour
         if (winPanel != null) winPanel.SetActive(false);
         if (failPanel != null) failPanel.SetActive(false);
         if (weaponPanel != null) weaponPanel.SetActive(false);
+        if (shopPanel != null) shopPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(false);
         if (waveBanner != null) waveBanner.gameObject.SetActive(false);
@@ -384,6 +392,7 @@ public class UIManager : MonoBehaviour
         if (coinText == null) return;
         coinTween?.Kill();
         coinTween = DOTween.To(() => shownCoins, x => { shownCoins = x; coinText.text = x.ToString(); }, coins, 0.3f).SetUpdate(true);
+        if (weaponPanel != null && weaponPanel.activeSelf) RefreshWeaponIcons(); // BUY/UPGRADE button ki halat
 
         if (coinIcon != null)
         {
@@ -422,8 +431,9 @@ public class UIManager : MonoBehaviour
         foreach (var card in weaponCards)
         {
             if (card == null || card.Weapon == null) continue;
-            bool unlocked = wc != null && wc.IsUnlocked(card.Weapon);
-            card.Refresh(unlocked, card.Weapon == current);
+            bool available = wc != null && wc.IsAvailable(card.Weapon);
+            bool owned = wc != null && wc.IsUnlocked(card.Weapon);
+            card.Refresh(available, owned, card.Weapon == current);
         }
     }
 
@@ -487,6 +497,50 @@ public class UIManager : MonoBehaviour
         ClickFeedback();
         if (weaponPanel != null) weaponPanel.SetActive(false);
         ResumeIfPausedByPanel();
+    }
+
+    /// <summary> Armory card ka BUY / UPGRADE </summary>
+    private void OnWeaponCardAction(WeaponCardUI card)
+    {
+        var w = card.Weapon;
+        bool ok = Economy.IsOwned(w) ? Economy.TryUpgradeWeapon(w) : Economy.TryBuyWeapon(w);
+        if (!ok) { SoundManager.Instance?.PlayButtonClick(); return; }
+        SoundManager.Instance?.PlayUnlock();
+        GameManager.Instance?.TriggerMediumHaptic();
+        card.PlayPurchasePunch();
+        // Naya khareeda weapon foran equip
+        var wc = GameManager.Instance != null ? GameManager.Instance.WeaponController : null;
+        if (wc != null && Economy.WeaponLevel(w) == 0 && wc.IsUnlocked(w)) wc.SelectWeapon(w);
+        RefreshWeaponIcons();
+    }
+
+    public void OnShopButtonClicked()
+    {
+        ClickFeedback();
+        PauseForPanel();
+        PopIn(shopPanel);
+    }
+
+    public void OnCloseShop()
+    {
+        ClickFeedback();
+        if (shopPanel != null) shopPanel.SetActive(false);
+        ResumeIfPausedByPanel();
+        RefreshWeaponIcons();
+    }
+
+    /// <summary> Haar ke baad: seedha Armory (upgrade kar ke dobara) </summary>
+    public void OnUpgradeFromFail()
+    {
+        ClickFeedback();
+        if (weaponPanel != null) weaponPanel.transform.SetAsLastSibling(); // fail panel ke upar
+        PopIn(weaponPanel);
+        RefreshWeaponIcons();
+    }
+
+    void Update()
+    {
+        if (shopBadge != null) shopBadge.SetActive(Economy.CanClaimDaily);
     }
 
     public void OnSettingsButtonClicked()

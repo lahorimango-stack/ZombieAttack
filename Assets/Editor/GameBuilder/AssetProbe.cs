@@ -73,6 +73,42 @@ public static class AssetProbe
         return parts.Length >= 3 ? parts[0] + "/" + parts[1] + "/" + parts[2] : p;
     }
 
+    private static UnityEditor.PackageManager.Requests.AddRequest iapRequest;
+
+    /// <summary> Unity IAP (In App Purchasing) package - Package Manager ke zariye (latest compatible) </summary>
+    public static string InstallIAP()
+    {
+        iapRequest = UnityEditor.PackageManager.Client.Add("com.unity.purchasing");
+        return "started";
+    }
+
+    public static string IAPStatus()
+    {
+        if (iapRequest == null) return "no request";
+        if (!iapRequest.IsCompleted) return "installing...";
+        return iapRequest.Status == UnityEditor.PackageManager.StatusCode.Success
+            ? $"OK {iapRequest.Result.name} {iapRequest.Result.version}"
+            : $"FAILED {iapRequest.Error?.message}";
+    }
+
+    /// <summary> Dog clip ke curve paths vs prefab ke asal bone paths </summary>
+    public static string DogBindings()
+    {
+        var clip = AssetDatabase.LoadAllAssetsAtPath("Assets/zombie-dog-animation/source/ZombieDog.fbx").OfType<AnimationClip>().First(c => c.name == "run");
+        var b = AnimationUtility.GetCurveBindings(clip);
+        var sb = new StringBuilder();
+        sb.AppendLine($"curves={b.Length} legacy={clip.legacy}");
+        foreach (var x in b.Select(x => x.path).Distinct().Take(6)) sb.AppendLine("  CLIP " + x);
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/Enemies/Zombie_Dog.prefab");
+        var anim = prefab.GetComponentInChildren<Animator>(true);
+        sb.AppendLine($"animator on '{anim.name}' avatar={(anim.avatar ? anim.avatar.name : "none")}");
+        foreach (var t in anim.GetComponentsInChildren<Transform>(true).Take(7))
+            sb.AppendLine("  PREFAB " + AnimationUtility.CalculateTransformPath(t, anim.transform));
+        var mi = (ModelImporter)AssetImporter.GetAtPath("Assets/zombie-dog-animation/source/ZombieDog.fbx");
+        sb.AppendLine($"importer avatarSetup={mi.avatarSetup} animType={mi.animationType} optimizeGO={mi.optimizeGameObjects}");
+        return sb.ToString();
+    }
+
     public static string Dog()
     {
         const string path = "Assets/zombie-dog-animation/source/ZombieDog.fbx";
