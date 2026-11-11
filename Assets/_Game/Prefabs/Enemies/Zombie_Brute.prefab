@@ -2347,6 +2347,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6761842584715991188}
   - component: {fileID: 6842211917107583243}
+  - component: {fileID: 5737641771146013909}
   - component: {fileID: 5131946620454582665}
   m_Layer: 0
   m_Name: HealthBar
@@ -2364,7 +2365,7 @@ RectTransform:
   m_GameObject: {fileID: 4731816774582305459}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.0074074073, y: 0.0074074073, z: 0.0074074073}
+  m_LocalScale: {x: 0.0066666664, y: 0.0066666664, z: 0.0066666664}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2398227628085868675}
@@ -2374,7 +2375,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 2.441517}
+  m_AnchoredPosition: {x: 0, y: 1.8159082}
   m_SizeDelta: {x: 110, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &6842211917107583243
@@ -2401,6 +2402,18 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 5
   m_TargetDisplay: 0
+--- !u!225 &5737641771146013909
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4731816774582305459}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!114 &5131946620454582665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2418,6 +2431,8 @@ MonoBehaviour:
   fillImage: {fileID: 5099406530990927134}
   trailImage: {fileID: 8209916330764068174}
   alwaysVisible: 0
+  visibleTime: 2.2
+  headOffset: 0.3
 --- !u!1 &4905922775596028882
 GameObject:
   m_ObjectHideFlags: 0
@@ -4233,7 +4248,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 167092add2177f6498a5cff17d1acc1f, type: 3}
   - {fileID: 8300000, guid: 27793cafcd56b2f4b8fe68cf60ea093f, type: 3}
   emergeSoundChance: 0.15
-  hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
+  hitFlashColor: {r: 1, g: 0.72, b: 0.66, a: 1}
   hitFlashDuration: 0.08
   hitBloodVfx: {fileID: 3044852254254214897, guid: d2ab2d9a81e237b40909b1d9cb061d2a, type: 3}
   deathVfx: {fileID: 6415144307894685678, guid: 254da22a7c43af7459fe81a6f46a60c8, type: 3}

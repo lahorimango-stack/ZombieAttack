@@ -23,5 +23,7 @@ public class LevelEnvironment : MonoBehaviour
 
         foreach (var barrel in GetComponentsInChildren<ExplosiveBarrel>(true))
             barrel.ResetBarrel();
+        foreach (var car in GetComponentsInChildren<ExplosiveVehicle>(true))
+            car.ResetVehicle();
     }
 }

@@ -71,6 +71,8 @@ public class LevelDataSO : ScriptableObject
     public float enemyHealthMultiplier = 1f;
     [Tooltip("Zombies ki raftar ka multiplier (animation speed - root motion ke saath)")]
     public float enemySpeedMultiplier = 1f;
+    [Tooltip("Ek waqt mein field par zyada se zyada zombies (0 = LevelManager ki default had). Kam = organized, aasaan")]
+    public int maxAliveOnField = 0;
 
     [Header("--- 3. Barricade & Rewards ---")]
     public float barricadeHealth = 100f;

@@ -129,6 +129,9 @@ public class LevelManager : MonoBehaviour
         LoadProgressionData();
         StopSpawner();
         ClearRemainingEnemies();
+        KillCam.Instance?.Cancel();
+        EndSlowMo.Instance?.ResetAll();
+        TutorialController.Instance?.Stop();
         SetWeaponControllerState(false);
         Time.timeScale = 1f;
 
@@ -150,6 +153,9 @@ public class LevelManager : MonoBehaviour
     {
         StopSpawner();
         ClearRemainingEnemies();
+        KillCam.Instance?.Cancel();
+        EndSlowMo.Instance?.ResetAll();
+        KillCam.FinalKillArmed = KillCam.QuietMomentArmed = false;
         Time.timeScale = 1f;
 
         if (levels.Count == 0 || levels[actualResourceLevelNumber - 1] == null)
@@ -187,6 +193,9 @@ public class LevelManager : MonoBehaviour
         else
             SoundManager.Instance?.PlayGameplayMusic();
 
+        // Pehli dafa: haath wala tutorial (zombies uske baad)
+        TutorialController.Instance?.Begin();
+
         waveSpawnerRoutine = StartCoroutine(SpawnWavesRoutine());
 
         Debug.Log($"<color=green>[LEVEL LOADED]</color> {currentActiveLevelData.name} | Total Enemies: {totalEnemiesInLevel}");
@@ -195,6 +204,10 @@ public class LevelManager : MonoBehaviour
     private IEnumerator SpawnWavesRoutine()
     {
         int waveCount = currentActiveLevelData.waves.Count;
+
+        // Tutorial chal raha ho to zombies ruk kar aayen (player pehle draw/throw seekh le)
+        while (TutorialController.Instance != null && TutorialController.Instance.Blocking && CurrentState == GameState.Playing)
+            yield return null;
 
         for (int w = 0; w < waveCount; w++)
         {
@@ -260,8 +273,8 @@ public class LevelManager : MonoBehaviour
 
         for (int i = 0; i < pack.count; i++)
         {
-            // Mobile: field par pehle se bohat zombies hon to naya thoda ruk kar aaye
-            while (CurrentState == GameState.Playing && AliveOnField() >= maxAliveEnemies)
+            // Organized flow + mobile: field par level ki had se zyada zombies nahi - naya tab aaye jab koi mare
+            while (CurrentState == GameState.Playing && AliveOnField() >= AliveCap)
                 yield return null;
             if (CurrentState != GameState.Playing) break;
 
@@ -359,6 +372,37 @@ public class LevelManager : MonoBehaviour
         directorTimer = directorInterval;
         RunDirector();
         StandUpLastCrawlers();
+        UpdateKillCamArming();
+    }
+
+    /// <summary> Is level mein ek waqt mein zyada se zyada zinda zombies (level ki apni had, mobile had se zyada nahi) </summary>
+    private int AliveCap
+    {
+        get
+        {
+            int lvl = currentActiveLevelData != null ? currentActiveLevelData.maxAliveOnField : 0;
+            return lvl > 0 ? Mathf.Min(lvl, maxAliveEnemies) : maxAliveEnemies;
+        }
+    }
+
+    /// <summary>
+    /// Kill cam kab: level ka aakhri zombie, ya beech mein sirf ek door wala zombie (danger kam)
+    /// </summary>
+    private void UpdateKillCamArming()
+    {
+        KillCam.FinalKillArmed = CurrentState == GameState.Playing && totalAliveEnemiesCount == 1;
+
+        bool quiet = false;
+        if (CurrentState == GameState.Playing && runningPackSpawners <= 0 && !KillCam.FinalKillArmed)
+        {
+            StandardEnemy only = null;
+            int alive = 0;
+            var list = StandardEnemy.Active;
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] != null && !list[i].IsDead) { alive++; only = list[i]; }
+            quiet = alive == 1 && !only.IsThreat;
+        }
+        KillCam.QuietMomentArmed = quiet;
     }
 
     private static int AliveOnField()
@@ -467,6 +511,7 @@ public class LevelManager : MonoBehaviour
         {
             OnLevelCompleted();
         }
+        UpdateKillCamArming();
     }
 
     public void OnLevelCompleted()
@@ -499,13 +544,25 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator WinSequence(int completedLevel)
     {
-        // Final kill slow-mo
-        Time.timeScale = finalKillSlowMoScale;
-        yield return new WaitForSecondsRealtime(finalKillSlowMoDuration);
-        Time.timeScale = 1f;
-
-        SoundManager.Instance?.PlayLevelWin();
-        yield return new WaitForSecondsRealtime(resultPanelDelay * 0.5f);
+        // Final kill: kill cam chal raha ho to woh khatam hone do, warna seedha slow-mo
+        if (KillCam.Instance != null && KillCam.Instance.Busy)
+        {
+            while (KillCam.Instance != null && KillCam.Instance.Busy) yield return null;
+        }
+        // Cinematic jeet: dheema waqt, camera push, sunehra rang, 'LEVEL CLEARED' title
+        if (EndSlowMo.Instance != null)
+        {
+            SoundManager.Instance?.PlayLevelWin();
+            yield return EndSlowMo.Instance.PlayWin($"{totalEnemiesInLevel} ZOMBIES DOWN");
+        }
+        else
+        {
+            Time.timeScale = finalKillSlowMoScale;
+            yield return new WaitForSecondsRealtime(finalKillSlowMoDuration);
+            Time.timeScale = 1f;
+            SoundManager.Instance?.PlayLevelWin();
+            yield return new WaitForSecondsRealtime(resultPanelDelay * 0.5f);
+        }
 
         WeaponDataSO unlocked = GameManager.Instance != null && GameManager.Instance.WeaponController != null
             ? GameManager.Instance.WeaponController.GetWeaponUnlockedAfterLevel(completedLevel)
@@ -528,8 +585,17 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator FailSequence()
     {
-        yield return new WaitForSecondsRealtime(resultPanelDelay);
-        SoundManager.Instance?.PlayLevelFail();
+        // Cinematic haar: dheema waqt, be-rang laal duniya, 'OVERRUN' title
+        if (EndSlowMo.Instance != null)
+        {
+            SoundManager.Instance?.PlayLevelFail();
+            yield return EndSlowMo.Instance.PlayFail("THE HORDE BROKE THROUGH");
+        }
+        else
+        {
+            yield return new WaitForSecondsRealtime(resultPanelDelay);
+            SoundManager.Instance?.PlayLevelFail();
+        }
         UIManager.Instance?.ShowFailScreen(currentDisplayLevelNumber, KilledEnemies, totalEnemiesInLevel);
     }
 

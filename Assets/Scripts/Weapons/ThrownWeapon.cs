@@ -22,6 +22,8 @@ public class ThrownWeapon : MonoBehaviour
 
     public WeaponDataSO Data { get; private set; }
     public bool IsLaunched { get; private set; }
+    /// <summary> Tutorial ka dikhawe wala weapon: kisi ko nuqsan nahi, bas ud kar gayab </summary>
+    public bool IsDummy { get; set; }
 
     private Vector3 velocity;
     private float lifeTimer;
@@ -126,6 +128,8 @@ public class ThrownWeapon : MonoBehaviour
         if (Data.useGravity)
             velocity += Vector3.down * Data.gravity * dt;
 
+        CheckKillCam();
+
         Vector3 step = velocity * dt;
         float dist = step.magnitude;
         Vector3 pos = transform.position;
@@ -165,14 +169,49 @@ public class ThrownWeapon : MonoBehaviour
         if (Data.alignToVelocity && velocity.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.LookRotation(velocity.normalized);
 
+        // Spin axis weapon ki flight ke hisaab se (root space): axe X par = asli "end over end" throw,
+        // visual ka apna tilt (khara/jhuka) spin ko top jaisa ghumao nahi banata
         if (Data.spinSpeed != 0f && visualRoot != null)
-            visualRoot.Rotate(Data.spinAxis, Data.spinSpeed * dt, Space.Self);
+            visualRoot.Rotate(transform.TransformDirection(Data.spinAxis), Data.spinSpeed * dt, Space.World);
+    }
+
+    private bool killCamChecked;
+
+    /// <summary>
+    /// Kill cam: aakhri zombie ko ye weapon lagne wala hai to pehle hi (lagne se ~0.2s pehle) cinematic shuru.
+    /// Sirf tab cast hota hai jab kill cam armed ho - baaki waqt koi kharcha nahi.
+    /// </summary>
+    private void CheckKillCam()
+    {
+        if (IsDummy || killCamChecked || KillCam.Instance == null || KillCam.Instance.Busy) return;
+        if (!KillCam.FinalKillArmed && !KillCam.QuietMomentArmed && !KillCam.DebugAlwaysArm) return;
+
+        float speed = velocity.magnitude;
+        if (speed < 0.1f) return;
+        float look = speed * 0.22f;
+        if (!Physics.SphereCast(transform.position, Data.hitRadius, velocity / speed, out RaycastHit hit, look, enemyMask, QueryTriggerInteraction.Ignore))
+            return;
+
+        HumanoidEnemy enemy = hit.collider.GetComponentInParent<HumanoidEnemy>();
+        if (enemy == null || alreadyHit.Contains(enemy)) return;
+        float dmg = Data.damage + Data.explosionDamage;
+        if (!KillCam.Instance.WantsKill(enemy, dmg)) return;
+
+        killCamChecked = true;
+        KillCam.Instance.Begin(transform, enemy, speed);
     }
 
     /// <returns>true = weapon aage jaari rahe (pierce), false = weapon khatam</returns>
     private bool HandleHit(RaycastHit hit, Vector3 pos)
     {
         HumanoidEnemy enemy = hit.collider.GetComponentInParent<HumanoidEnemy>();
+
+        if (IsDummy)
+        {
+            if (enemy != null || hit.collider.GetComponentInParent<IDamageable>() != null) return true; // aar paar
+            Finish();
+            return false;
+        }
 
         if (enemy != null)
         {
@@ -189,7 +228,7 @@ public class ThrownWeapon : MonoBehaviour
             }
 
             enemy.TakeDamage(Data.damage, hit.point, velocity.normalized * Data.impactForce);
-            SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 2f);
+            if (Data.hitVfxOnEnemies) SpawnVfx(Data.hitVfx, hit.point, -velocity.normalized, 2f);
             SoundManager.Instance?.PlayRandomSFX(Data.hitSounds, 0.9f, 1.1f, 0.8f);
             if (Data.chainCount > 0) ChainLightning(enemy, hit.point);
 
@@ -199,6 +238,7 @@ public class ThrownWeapon : MonoBehaviour
                 return true;
             }
 
+            if (Data.stickOnHit) StickInto(hit);
             Finish();
             return false;
         }
@@ -224,6 +264,25 @@ public class ThrownWeapon : MonoBehaviour
         }
         Finish();
         return false;
+    }
+
+    /// <summary>
+    /// Knife/axe zombie ke jism mein phans kar reh jaye (haddi ke saath ragdoll mein udta hai) - asli wazan wala hit.
+    /// Axe ka blade andar, handle bahar latakta hua.
+    /// </summary>
+    private void StickInto(RaycastHit hit)
+    {
+        if (visualRoot == null || visualRoot == transform) return;
+        Vector3 dir = velocity.sqrMagnitude > 0.01f ? velocity.normalized : transform.forward;
+        Quaternion flat = Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.z).sqrMagnitude > 0.001f ? new Vector3(dir.x, 0f, dir.z) : Vector3.forward);
+
+        visualRoot.SetParent(hit.collider.transform, true);
+        // Flight wala rukh + halka jhukao (axe: blade andar, handle neeche latakta)
+        visualRoot.rotation = flat * Quaternion.Euler(Data.stuckVisualEuler) * Quaternion.Euler(Data.flightVisualEuler);
+        visualRoot.position = hit.point + dir * Data.stuckDepth;
+        foreach (var ps in visualRoot.GetComponentsInChildren<ParticleSystem>()) ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        Destroy(visualRoot.gameObject, 4.5f); // zombie zameen mein dhans jaye to saath gayab (warna bhi)
+        visualRoot = null;
     }
 
     private void Explode(Vector3 point)

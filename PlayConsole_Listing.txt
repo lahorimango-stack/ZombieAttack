@@ -1,0 +1,125 @@
+LAST THROW: ZOMBIE NIGHT - GOOGLE PLAY CONSOLE DATA
+====================================================
+
+1. APP DETAILS
+----------------------------------------------------
+App name (Play Store title):  Last Throw: Zombie Night
+Name on phone (icon ke neeche): Last Throw
+Developer / Studio:            Bradford Games
+Package name:                  com.bradfordgames.lastthrow
+App ya Game:                   Game
+Category:                      Action
+Free ya Paid:                  Free (aap ka faisla; free karne ke baad paid nahi ho sakti)
+Default language:              English (United States)
+
+Project mein abhi version:     0.1.0 (version code 1)
+
+
+2. SHORT DESCRIPTION (max 80 characters)
+----------------------------------------------------
+Draw your weapons, throw them, and stop the zombie horde before it reaches you.
+
+
+3. FULL DESCRIPTION (max 4000 characters)
+----------------------------------------------------
+The night is long, the street is blocked, and they are coming.
+
+Drag your finger to draw a line of weapons, then release to throw them straight into the horde. Aim well, because every throw counts and the dead do not stop.
+
+HOW TO PLAY
+• Drag to create weapons in any formation
+• Time slows down while you draw, so plan your shot
+• Release to throw
+• Kill every zombie before your health runs out
+
+10 LEVELS, 10 BATTLEGROUNDS
+Fight from a quiet street to a burning hell gate. Each level has its own place, props and wave design. Difficulty rises and falls, so tense battles are followed by a moment to breathe.
+
+ZOMBIES THAT KEEP YOU MOVING
+• Runners sprint straight at you
+• Crawlers come in low, then stand up
+• Bombers explode, so kill them from far away
+• Brutes take a lot of punishment
+• Mini-boss: The Butcher
+• Final boss: King of the Dead
+
+6 WEAPONS TO UNLOCK
+Knife, Axe, Crystal Spear, Grenade, Fire Bomb and Rocket. Each one has its own damage, speed and area.
+
+USE THE STREET
+Shoot explosive barrels and cars to wipe out whole groups in one blast.
+
+CINEMATIC FINAL KILLS
+The last kill plays in slow motion from dramatic camera angles.
+
+Contains blood and zombie violence.
+
+
+4. APP CONTENT - CONSOLE KE SAWALON KE JAWAB
+----------------------------------------------------
+Target age groups:             16-17 aur 18+ (13 se kam bilkul select na karein)
+Bachon ke liye hai?            Nahi. Realistic zombies, khoon aur ragdoll hain.
+Ads:                           Nahi (project mein ad SDK nahi mila. Baad mein lagayein to update karein)
+In-app purchases:              Nahi
+
+Content rating questionnaire (sach bataein, final rating isi se banegi):
+  Violence:                    Haan
+  Blood:                       Haan
+  Sexual content:              Nahi
+  Bad language / gaali:        Nahi
+  Drugs, alcohol, tobacco:     Nahi
+  Gambling:                    Nahi
+  Users aapas mein baat/interact: Nahi
+  User ki location share:      Nahi
+Expected rating:               Andaza Teen/Mature (PEGI 16-18). Yeh sirf andaza hai.
+
+Data safety:
+  Hamara game code data collect nahi karta.
+  Form bharne se pehle Unity ki analytics aur diagnostics settings check karein.
+  Ads ya analytics baad mein lagayein to form dobara update karein.
+
+
+5. YEH AAP KO KHUD DENA HOGA
+----------------------------------------------------
+[ ] Support email:             ______________________
+[ ] Privacy policy link:       ______________________
+[ ] Website (optional):        ______________________
+[ ] App icon:                  512 x 512 PNG
+[ ] Feature graphic:           1024 x 500
+[ ] Phone screenshots:         asli gameplay ke (doosre games ke nahi)
+
+
+6. PUBLISH SE PEHLE CHECKLIST
+----------------------------------------------------
+LICENSES - yeh sab aap ke apne Asset Store "My Assets" mein hon:
+[ ] GUI PRO Kit - Casual Game
+[ ] GUI Pro-FantasyRPG (star aur lock)
+[ ] Polygon Arsenal
+[ ] Hovl Studio AAA Projectiles Vol 1
+[ ] Realistic Blood FX
+[ ] FORGE3D Damage FX
+[ ] FPS Shooting Environment
+[ ] Quantum Theory UCP
+[ ] Low Poly Weapons
+[ ] StudioNewPunch zombies
+[ ] Zombie MoCap
+[ ] Universal Sound FX
+
+SOURCE CONFIRM KAREIN (warna badal dein):
+[ ] hand.png (tutorial ka haath)
+[ ] Assets/Audio ki purani files (Knife throw 1, Spawn, hitImpactSound)
+[ ] Background music
+[ ] AppIcon.png
+
+NAAM:
+[ ] "Last Throw" Play Store par search karein
+[ ] Trademark database mein search karein (USPTO, IPO Pakistan)
+[ ] Description ya keywords mein doosre games ke naam na likhein
+
+BUILD:
+[ ] Package name final hai (pehli upload ke baad kabhi nahi badlega)
+[ ] Keystore project se bahar rakhein aur backup banayein
+[ ] Keystore Player Settings mein set karein (abhi custom keystore set nahi)
+[ ] Keystore ka password mehfooz jagah likh lein
+[ ] Version number release ke liye set karein
+[ ] Phone par poora game test karein

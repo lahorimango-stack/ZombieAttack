@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SlowMoPostFX
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 403719576734134115}
-  - {fileID: 8338370979938649907}
---- !u!114 &403719576734134115
+  - {fileID: 5180799410317833219}
+  - {fileID: 9158284138993099612}
+--- !u!114 &5180799410317833219
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
@@ -33,17 +33,17 @@ MonoBehaviour:
     m_Value: 0.8
   contrast:
     m_OverrideState: 1
-    m_Value: 20
+    m_Value: 16
   colorFilter:
     m_OverrideState: 1
-    m_Value: {r: 0.84, g: 0.93, b: 1.05, a: 1}
+    m_Value: {r: 0.88, g: 0.95, b: 1.04, a: 1}
   hueShift:
     m_OverrideState: 1
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: -38
---- !u!114 &8338370979938649907
+    m_Value: -22
+--- !u!114 &9158284138993099612
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,7 +64,7 @@ MonoBehaviour:
     m_Value: {x: 0.5, y: 0.5}
   intensity:
     m_OverrideState: 1
-    m_Value: 0.5
+    m_Value: 0.3
   smoothness:
     m_OverrideState: 1
     m_Value: 0.5

@@ -34,6 +34,9 @@ MonoBehaviour:
   flightVisualEuler: {x: 90, y: 0, z: 0}
   alignToVelocity: 0
   lifeTime: 4
+  stickOnHit: 0
+  stuckVisualEuler: {x: 0, y: 0, z: 0}
+  stuckDepth: 0.08
   hitRadius: 0.18
   damage: 0
   pierceCount: 0
@@ -52,7 +55,16 @@ MonoBehaviour:
   maxRange: 20
   spawnVfx: {fileID: 0}
   hitVfx: {fileID: 0}
+  hitVfxOnEnemies: 1
   explosionVfx: {fileID: 7620376701682460066, guid: 6923a8ddeb1fcb04da24f90092a57f79, type: 3}
+  firstSpawnSounds: []
+  spawnSounds:
+  - {fileID: 8300000, guid: f7bebb03737ea374aa03ed1ddebff4e9, type: 3}
+  - {fileID: 8300000, guid: 2fa56ade5cfed39409eb58da8fbc875f, type: 3}
+  - {fileID: 8300000, guid: e6991dc3800c2414084f32faeec79d67, type: 3}
+  - {fileID: 8300000, guid: 90aae7de3047c96409c382b68b1ac242, type: 3}
+  spawnPitch: 0.85
+  spawnVolume: 0.55
   launchSounds:
   - {fileID: 8300000, guid: d762bfc2ed4970a409733d59fe687fa4, type: 3}
   hitSounds: []

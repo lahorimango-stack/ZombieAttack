@@ -8,9 +8,45 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 113346, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 123036, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 123458, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 163734, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
       propertyPath: m_Name
       value: VFX_BloodDeath2
+      objectReference: {fileID: 0}
+    - target: {fileID: 179874, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 194218, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 197292, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 435110, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 435110, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 435110, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.7
       objectReference: {fileID: 0}
     - target: {fileID: 435110, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
       propertyPath: m_LocalPosition.x
@@ -50,6 +86,94 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 435110, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19809368, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: scalingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19809368, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: InitialModule.maxNumParticles
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 19812566, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: scalingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19812566, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: InitialModule.maxNumParticles
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 19812566, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: EmissionModule.m_Bursts.Array.data[0].countCurve.scalar
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 19847576, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: scalingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19847576, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: EmissionModule.m_Bursts.Array.data[0].countCurve.scalar
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 19855642, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: scalingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19855642, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: SubModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19855642, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: CollisionModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19855642, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: InitialModule.maxNumParticles
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 19855642, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: EmissionModule.m_Bursts.Array.data[0].countCurve.scalar
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 19866236, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: scalingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19866236, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: SubModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19866236, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: CollisionModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19866236, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: InitialModule.maxNumParticles
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 19866236, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: EmissionModule.m_Bursts.Array.data[0].countCurve.scalar
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 19958522, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19960916, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19980940, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 19980940, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_LengthScale
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 19980940, guid: 0a5ac034133a7654a8565697adff5548, type: 3}
+      propertyPath: m_ReceiveShadows
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

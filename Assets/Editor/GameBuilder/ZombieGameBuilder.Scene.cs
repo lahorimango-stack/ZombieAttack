@@ -30,7 +30,10 @@ public static partial class ZombieGameBuilder
     [MenuItem("ZombieAttack/3. Build Game Scene", priority = 22)]
     public static void BuildGameScene()
     {
-        if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        // Generated scene (ZombieGame) har dafa naye siray se banta hai - uske liye "save karein?" ka sawal nahi
+        // (automation mein ye dialog editor ko rok deta tha). Kisi doosre scene par ho to poochho.
+        bool onGeneratedScene = SceneManager.GetActiveScene().path == ScenePath;
+        if (!Application.isBatchMode && !onGeneratedScene && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             return;
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -260,11 +263,11 @@ public static partial class ZombieGameBuilder
         }
         var slowColor = slowProfile.Add<ColorAdjustments>(true);
         slowColor.postExposure.Override(0.8f);
-        slowColor.contrast.Override(20f);
-        slowColor.saturation.Override(-38f);
-        slowColor.colorFilter.Override(new Color(0.84f, 0.93f, 1.05f));
+        slowColor.contrast.Override(16f);
+        slowColor.saturation.Override(-22f); // halka thanda rang - screen dhundli/kaali na lage
+        slowColor.colorFilter.Override(new Color(0.88f, 0.95f, 1.04f));
         var slowVignette = slowProfile.Add<Vignette>(true);
-        slowVignette.intensity.Override(0.5f);
+        slowVignette.intensity.Override(0.3f);
         slowVignette.smoothness.Override(0.5f);
         slowVignette.color.Override(new Color(0f, 0.02f, 0.06f));
         foreach (var c in slowProfile.components) AssetDatabase.AddObjectToAsset(c, slowProfile);
@@ -278,10 +281,106 @@ public static partial class ZombieGameBuilder
         builtSlowMoVolume.weight = 0f;
         builtSlowMoVolume.sharedProfile = slowProfile;
 
+        // Kill cam ka alag camera (shuru mein band) - aakhri kill doosre angle se
+        var kcGo = new GameObject("KillCam Camera");
+        var kc = kcGo.AddComponent<Camera>();
+        kc.fieldOfView = 55f;
+        kc.nearClipPlane = 0.05f;
+        kc.farClipPlane = 55f;
+        kc.clearFlags = CameraClearFlags.Skybox;
+        var kcData = kc.GetUniversalAdditionalCameraData();
+        kcData.renderPostProcessing = true;
+        kcData.antialiasing = AntialiasingMode.None;
+        kc.enabled = false;
+        builtKillCamera = kc;
+        // Film wali 'key/fill light' camera ke saath (sirf kill cam mein on) - raat mein zombie saaf dikhe
+        var fillGo = new GameObject("KillCam Fill Light");
+        fillGo.transform.SetParent(kcGo.transform, false);
+        fillGo.transform.localPosition = new Vector3(0.6f, 0.7f, 0f);
+        var fill = fillGo.AddComponent<Light>();
+        fill.type = LightType.Point; fill.color = new Color(1f, 0.9f, 0.8f); fill.intensity = 5f; fill.range = 9f; fill.shadows = LightShadows.None;
+        fill.enabled = false;
+        builtKillFill = fill;
+
+        // Hamle ka post FX: laal vignette + chromatic aberration + rang udna (DamageScreenFX weight tween karta hai)
+        string dmgPath = GameRoot + "/Settings/DamagePostFX.asset";
+        var dmgProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(dmgPath);
+        if (dmgProfile == null) { dmgProfile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(dmgProfile, dmgPath); }
+        foreach (var comp in dmgProfile.components.ToList()) { dmgProfile.Remove(comp.GetType()); Object.DestroyImmediate(comp, true); }
+        var dv = dmgProfile.Add<Vignette>(true); dv.intensity.Override(0.5f); dv.smoothness.Override(0.55f); dv.color.Override(new Color(0.55f, 0f, 0f));
+        var dca = dmgProfile.Add<ChromaticAberration>(true); dca.intensity.Override(0.5f);
+        var dcol = dmgProfile.Add<ColorAdjustments>(true); dcol.saturation.Override(-25f); dcol.colorFilter.Override(new Color(1f, 0.82f, 0.82f));
+        foreach (var comp in dmgProfile.components) AssetDatabase.AddObjectToAsset(comp, dmgProfile);
+        EditorUtility.SetDirty(dmgProfile);
+        AssetDatabase.SaveAssets();
+        var dmgGo = new GameObject("Damage Volume");
+        builtDamageVolume = dmgGo.AddComponent<Volume>();
+        builtDamageVolume.isGlobal = true;
+        builtDamageVolume.priority = 8f;
+        builtDamageVolume.weight = 0f;
+        builtDamageVolume.sharedProfile = dmgProfile;
+        builtWinVolume = BuildEndVolume("EndWinPostFX", true);
+        builtFailVolume = BuildEndVolume("EndFailPostFX", false);
+
+        // Kill cam ka cinematic rang: chromatic aberration, gehra vignette, thanda-kaala rang, lens jhatka
+        string kcPath = GameRoot + "/Settings/KillCamPostFX.asset";
+        var kcProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(kcPath);
+        if (kcProfile == null) { kcProfile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(kcProfile, kcPath); }
+        foreach (var comp in kcProfile.components.ToList()) { kcProfile.Remove(comp.GetType()); Object.DestroyImmediate(comp, true); }
+        var ca = kcProfile.Add<ChromaticAberration>(true); ca.intensity.Override(0.55f);
+        var kv = kcProfile.Add<Vignette>(true); kv.intensity.Override(0.32f); kv.smoothness.Override(0.4f); kv.color.Override(Color.black);
+        var kca = kcProfile.Add<ColorAdjustments>(true); kca.postExposure.Override(0.45f); kca.saturation.Override(-25f); kca.contrast.Override(14f); kca.colorFilter.Override(new Color(1f, 0.92f, 0.88f));
+        var ld = kcProfile.Add<LensDistortion>(true); ld.intensity.Override(0f);
+        foreach (var comp in kcProfile.components) AssetDatabase.AddObjectToAsset(comp, kcProfile);
+        EditorUtility.SetDirty(kcProfile);
+        AssetDatabase.SaveAssets();
+        var kcVolGo = new GameObject("KillCam Volume");
+        builtKillCamVolume = kcVolGo.AddComponent<Volume>();
+        builtKillCamVolume.isGlobal = true;
+        builtKillCamVolume.priority = 10f;
+        builtKillCamVolume.weight = 0f;
+        builtKillCamVolume.sharedProfile = kcProfile;
+        builtMainCamera = cam;
+
         return cam;
     }
 
     private static Volume builtSlowMoVolume;
+    private static Camera builtKillCamera, builtMainCamera;
+    private static Volume builtKillCamVolume;
+    private static Light builtKillFill;
+    private static Volume builtDamageVolume, builtWinVolume, builtFailVolume;
+    private static AudioSource builtMusicSource;
+
+    /// <summary> End slow-mo ke rang: jeet = garam sunehra + bloom, haar = be-rang laal </summary>
+    private static Volume BuildEndVolume(string name, bool win)
+    {
+        string p = GameRoot + "/Settings/" + name + ".asset";
+        var prof = AssetDatabase.LoadAssetAtPath<VolumeProfile>(p);
+        if (prof == null) { prof = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(prof, p); }
+        foreach (var comp in prof.components.ToList()) { prof.Remove(comp.GetType()); Object.DestroyImmediate(comp, true); }
+        var ca = prof.Add<ColorAdjustments>(true);
+        var vg = prof.Add<Vignette>(true);
+        if (win)
+        {
+            ca.postExposure.Override(0.25f); ca.saturation.Override(-12f); ca.contrast.Override(14f); ca.colorFilter.Override(new Color(1f, 0.9f, 0.74f));
+            vg.intensity.Override(0.38f); vg.color.Override(new Color(0.12f, 0.06f, 0f));
+            var bl = prof.Add<Bloom>(true); bl.intensity.Override(1.8f); bl.threshold.Override(0.8f); bl.downscale.Override(BloomDownscaleMode.Quarter);
+        }
+        else
+        {
+            ca.saturation.Override(-78f); ca.contrast.Override(22f); ca.colorFilter.Override(new Color(1f, 0.6f, 0.58f));
+            vg.intensity.Override(0.52f); vg.color.Override(new Color(0.3f, 0f, 0f));
+            var cab = prof.Add<ChromaticAberration>(true); cab.intensity.Override(0.35f);
+        }
+        foreach (var comp in prof.components) AssetDatabase.AddObjectToAsset(comp, prof);
+        EditorUtility.SetDirty(prof);
+        AssetDatabase.SaveAssets();
+        var go = new GameObject(name);
+        var v = go.AddComponent<Volume>();
+        v.isGlobal = true; v.priority = 9f; v.weight = 0f; v.sharedProfile = prof;
+        return v;
+    }
 
     private static void BuildLighting()
     {
@@ -624,7 +723,7 @@ public static partial class ZombieGameBuilder
         // L2: jalti gaadiyan (blockade khud jalti gaadiyon ka hai)
         var l2 = NewEnvB(env, BlkBurningCars, "Level 2 - Burning Cars", new Color(0.2f, 0.15f, 0.14f), 10f, 42f, new Color(0.56f, 0.44f, 0.42f));
         AddBurningCar(l2, new Vector3(6.6f, 0f, 28f), -160f);
-        AddFireBarrel(l2, new Vector3(3.7f, 0f, nz - 0.3f));
+        AddExplosiveCar(l2, 1, 12.6f, 82f); // shoot karo: gaadi phat kar gap ke zombies uda deti hai
         Place(FPS + "Tyre.prefab", l2, new Vector3(-3.8f, 0f, nz - 0.3f), 30f, 0.45f);
         AddBarrel(l2, barrelPrefab, new Vector3(2.2f, 0f, 12.1f));
         AddBarrel(l2, barrelPrefab, new Vector3(-2.2f, 0f, 7.6f));
@@ -637,7 +736,7 @@ public static partial class ZombieGameBuilder
         var flood = Place(FPS + "FL Stand Leg low5.prefab", l3, new Vector3(3.9f, 0f, nz), -30f, 3.2f);
         if (flood != null) AddPointLight(l3, new Vector3(3.5f, 3f, nz - 0.1f), new Color(1f, 0.9f, 0.7f), 5f, 11f, LightFlicker.FlickerStyle.BrokenLamp);
         Place(FPS + "Crate Boxes.prefab", l3, new Vector3(6.4f, 0f, 28f), -15f, 1.3f);
-        Place(FPS + "Tyre v2.prefab", l3, new Vector3(-3.9f, 0f, nz), 40f, 1.2f);
+        AddExplosiveCar(l3, -1, 12.6f, -84f);
         AddBarrel(l3, barrelPrefab, new Vector3(-2.2f, 0f, 12.1f));
         AddBarrel(l3, barrelPrefab, new Vector3(2.2f, 0f, 7.5f));
 
@@ -664,7 +763,7 @@ public static partial class ZombieGameBuilder
 
         // L6: police line - laal/neeli beacons, barriers
         var l6 = NewEnvB(env, BlkPolice, "Level 6 - Police Line", new Color(0.1f, 0.12f, 0.2f), 10f, 44f, new Color(0.42f, 0.46f, 0.7f));
-        PlaceAcross(FPS + "Barrier Big.prefab", l6, -3.2f, -1, nz - 0.2f, 1.05f);
+        AddExplosiveCar(l6, -1, 12.6f, -80f); // beacon iski chhat par
         PlaceAcross(FPS + "Barrier Big.prefab", l6, 3.2f, 1, nz - 0.1f, 1.05f);
         var beaconL = AddPointLight(l6, new Vector3(-3.6f, 1.7f, nz - 0.6f), new Color(1f, 0.08f, 0.05f), 4f, 7f, LightFlicker.FlickerStyle.Police);
         Set(beaconL.GetComponent<LightFlicker>(), "phase", 0.75f);
@@ -690,7 +789,7 @@ public static partial class ZombieGameBuilder
         // L8: zehreela ilaaqa - hari roshni, hesco, sandbags
         var l8 = NewEnvB(env, BlkToxic, "Level 8 - Toxic Zone", new Color(0.12f, 0.2f, 0.12f), 9f, 38f, new Color(0.4f, 0.6f, 0.4f));
         PlaceAcross(FPS + "HescoBarrier.prefab", l8, -3.2f, -1, nz, 1.4f);
-        PlaceAcross(FPS + "Sand Bad V1.prefab", l8, 3.2f, 1, nz - 0.2f, 1f);
+        AddExplosiveCar(l8, 1, 12.6f, 86f);
         Place(FPS + "Cargo Container.prefab", l8, new Vector3(-8.2f, 0f, 29f), 5f, 2.6f);
         Place(FPS + "Cargo Container 2.prefab", l8, new Vector3(8.4f, 0f, 30f), -10f, 2.6f);
         AddPointLight(l8, new Vector3(-3.6f, 2.6f, nz - 0.5f), new Color(0.4f, 1f, 0.25f), 4f, 9f, LightFlicker.FlickerStyle.BrokenLamp);
@@ -701,7 +800,7 @@ public static partial class ZombieGameBuilder
         var l9 = NewEnvB(env, BlkHighway, "Level 9 - Highway Wreck", new Color(0.16f, 0.17f, 0.2f), 8f, 36f, new Color(0.5f, 0.52f, 0.6f));
         Place(UCP + "Meshes/Traffic/Traffic-HwySign_SupportLarge.fbx", l9, new Vector3(0f, 0f, 27f), 0f, 8f);
         PlaceAcross(UCP + "Meshes/Props/Prop-JerseyBarrier4x1.fbx", l9, -3.2f, -1, nz, 1.05f, 0f, -8f);
-        PlaceAcross(UCP + "Meshes/Props/Prop-JerseyBarrier4x1.fbx", l9, 3.2f, 1, nz - 0.2f, 1.05f, 0f, 6f);
+        AddExplosiveCar(l9, 1, 12.6f, 78f);
         AddBurningCar(l9, new Vector3(-5.8f, 0f, 31.5f), 20f); // gantry ke paaye (x ±7, z 27) se door
         AddFireBarrel(l9, new Vector3(5f, 0f, 30.5f));
         for (int i = 0; i < 4; i++) AddBarrel(l9, barrelPrefab, new Vector3(i % 2 == 0 ? -2.2f : 2.2f, 0f, BarrelZ(i)));
@@ -710,7 +809,7 @@ public static partial class ZombieGameBuilder
         var l10 = NewEnvB(env, BlkHell, "Level 10 - Hell Gate", new Color(0.28f, 0.08f, 0.06f), 8f, 36f, new Color(0.7f, 0.28f, 0.24f));
         AddBurningCar(l10, new Vector3(-5.6f, 0f, nz - 0.2f), 80f);
         AddBurningCar(l10, new Vector3(6.6f, 0f, 28f), 200f);
-        AddFireBarrel(l10, new Vector3(3.8f, 0f, nz));
+        AddExplosiveCar(l10, 1, 12.6f, 84f);
         AddFireBarrel(l10, new Vector3(-5.4f, 0f, 28f));
         Place(FPS + "Container Room.prefab", l10, new Vector3(8.2f, 0f, 31f), 90f, 3f);
         AddPointLight(l10, new Vector3(0f, 6f, 26f), new Color(1f, 0.15f, 0.08f), 8f, 24f, LightFlicker.FlickerStyle.Fire);
@@ -869,6 +968,81 @@ public static partial class ZombieGameBuilder
             MakeBurnt(car);
         }
         if (burning) AddBurningCarFx(parent, pos);
+    }
+
+    /// <summary>
+    /// Shoot karne wali gaadi (ExplosiveVehicle): lane ke kinare (inner edge x = ±2.55) blockade ke paas khari.
+    /// Gap se nikalte zombies iske saath se guzarte hain - maaro to poora group udd jata hai.
+    /// </summary>
+    private static void AddExplosiveCar(Transform env, int side, float z, float yaw)
+    {
+        const string suv = "Assets/ThirdParty/FORGE3D/DamageFX/Examples/SUV/SUV.prefab";
+        var root = new GameObject("ExplosiveCar").transform;
+        root.SetParent(env);
+        var body = new GameObject("Body").transform;
+        body.SetParent(root, false);
+
+        GameObject MakeModel(string name)
+        {
+            var m = Place(suv, body, Vector3.zero, yaw, 1.6f);
+            if (m == null) return null;
+            m.name = name;
+            foreach (var mb in m.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(mb);
+            GameObjectUtility.SetStaticEditorFlags(m, 0); // phatne par uchhalti hai - static batching nahi
+            return m;
+        }
+
+        var intact = MakeModel("Intact");
+        if (intact == null) { Object.DestroyImmediate(root.gameObject); return; }
+        var burnt = MakeModel("Burnt");
+        MakeBurnt(burnt);
+
+        // Lane ke kinare tak (andar nahi - zombies |x| <= 2.4 mein chalte hain)
+        Bounds b = GetRenderBounds(intact);
+        float innerX = side * 2.55f;
+        root.position = new Vector3(innerX + side * b.extents.x - b.center.x, 0f, z - b.center.z);
+        b = GetRenderBounds(intact);
+
+        var col = root.gameObject.AddComponent<BoxCollider>();
+        col.center = root.InverseTransformPoint(b.center);
+        col.size = b.size;
+
+        var blast = new GameObject("BlastPoint").transform;
+        blast.SetParent(root, true);
+        blast.position = new Vector3(innerX - side * 0.3f, 0.7f, b.center.z);
+
+        GameObject Fx(string vfx, Vector3 pos, float scale)
+        {
+            var src = Vfx(vfx);
+            if (src == null) return null;
+            var g = (GameObject)PrefabUtility.InstantiatePrefab(src, body);
+            g.transform.position = pos;
+            g.transform.localScale = Vector3.one * scale;
+            g.SetActive(false);
+            return g;
+        }
+        var smoke = Fx("VFX_Smoke", b.center + Vector3.up * b.extents.y * 0.6f, 0.5f);
+        var fire = Fx("VFX_Fire", b.center + Vector3.up * 0.4f, 0.6f);
+
+        var alarm = AddPointLight(body, b.center + Vector3.up * (b.extents.y + 0.4f), new Color(1f, 0.45f, 0.1f), 3f, 5f, null);
+        alarm.enabled = false;
+
+        SetLayerRecursive(root.gameObject, LayerEnemy); // weapons isse takrate hain (barrel jaisa)
+        if (burnt != null) burnt.SetActive(false);
+
+        var v = root.gameObject.AddComponent<ExplosiveVehicle>();
+        Set(v, "blastPoint", blast);
+        Set(v, "damageMask", 1 << LayerEnemy);
+        Set(v, "explosionVfx", Vfx("VFX_GroundExplosion"));
+        Set(v, "explosionSounds", ClipsStartingWith("Assets/Audio/Game/Weapons", "EXPLOSION_Short"));
+        Set(v, "body", body);
+        Set(v, "intactModel", intact);
+        Set(v, "burntModel", burnt);
+        Set(v, "smokeFx", smoke);
+        Set(v, "fireFx", fire);
+        Set(v, "hitSparkVfx", Vfx("VFX_ImpactMetal"));
+        Set(v, "hitSounds", ClipsStartingWith("Assets/Audio/Game/Weapons", "IMPACT_Metal_Hit_Sheet"));
+        Set(v, "alarmLight", alarm);
     }
 
     /// <summary> Jali hui gaadi: kaala sa rang (material copy taake scene mein save ho) </summary>
@@ -1114,10 +1288,12 @@ public static partial class ZombieGameBuilder
         sfx.loop = false; sfx.playOnAwake = false;
         var sm = smGo.AddComponent<SoundManager>();
         Set(sm, "musicSource", music);
+        builtMusicSource = music;
         Set(sm, "sfxSource", sfx);
         Set(sm, "knifeShootSound", AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Knife throw 1.mp3")); // "Knife throw.mp3" ki meta Cocos wali hai - Unity mein load nahi hoti
         Set(sm, "knifeSpawnSound", AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Spawn.wav"));
         Set(sm, "knifeHitSound", AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/hitImpactSound.mp3"));
+        Set(sm, "killImpactSounds", ClipsStartingWith("Assets/Audio/Game/Weapons/Pro", "THUD_"));
         Set(sm, "buttonClickSound", ClipsStartingWith("Assets/Audio/Game/UI", "UI_Click_Tap_01").FirstOrDefault());
         Set(sm, "panelOpenSound", ClipsStartingWith("Assets/Audio/Game/UI", "UI_Animate_Zap_Swoosh").FirstOrDefault());
         Set(sm, "coinSound", null);

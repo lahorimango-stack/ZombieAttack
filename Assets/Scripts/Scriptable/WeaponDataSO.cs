@@ -47,6 +47,12 @@ public class WeaponDataSO : ScriptableObject
     [Tooltip("True ho to visual hamesha flight direction ki taraf face karega (rocket)")]
     public bool alignToVelocity = false;
     public float lifeTime = 3f;
+    [Tooltip("True = zombie mein phans kar reh jaye (knife/axe)")]
+    public bool stickOnHit = false;
+    [Tooltip("Phansne par flight rotation ke upar extra jhukao (X 25 = sar aage jhuka)")]
+    public Vector3 stuckVisualEuler = Vector3.zero;
+    [Tooltip("Jism ke andar kitna ghuse (meters)")]
+    public float stuckDepth = 0.08f;
     [Tooltip("Hit detection sphere ka radius")]
     public float hitRadius = 0.25f;
 
@@ -84,7 +90,15 @@ public class WeaponDataSO : ScriptableObject
     [Tooltip("Weapon spawn hote waqt chhota flash (Hovl Flash)")]
     public GameObject spawnVfx;
     public GameObject hitVfx;
+    [Tooltip("False = zombie ko lagne par hitVfx nahi (sirf khoon) - blade ke metal chunks zombie par ajeeb lagte the")]
+    public bool hitVfxOnEnemies = true;
     public GameObject explosionVfx;
+    [Tooltip("Draw ka PEHLA weapon (e.g. talwar nikalne ka 'shing'). Baaki weapons spawnSounds (chhoti clicks)")]
+    public AudioClip[] firstSpawnSounds;
+    [Tooltip("Baaki har weapon bante hi (chhoti metallic click). Formation lambi ho to pitch upar jata hai")]
+    public AudioClip[] spawnSounds;
+    [Range(0.5f, 2f)] public float spawnPitch = 1f;
+    [Range(0f, 1f)] public float spawnVolume = 0.6f;
     public AudioClip[] launchSounds;
     public AudioClip[] hitSounds;
     public AudioClip[] explosionSounds;

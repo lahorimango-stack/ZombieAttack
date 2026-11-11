@@ -277,8 +277,8 @@ public class WeaponFormationController : MonoBehaviour
             Destroy(flash, 1f);
         }
 
-        // Audio & Haptic
-        SoundManager.Instance?.PlaySpawnSound();
+        // Audio & Haptic: har weapon ki apni awaaz, formation barhne par pitch upar
+        SoundManager.Instance?.PlayWeaponSpawn(data.spawnSounds, activeWeaponsOnScreen.Count - 1, data.spawnPitch, data.spawnVolume, data.firstSpawnSounds);
         GameManager.Instance?.TriggerLightHaptic();
 
         // Max limit: Direct Destroy Oldest
@@ -293,6 +293,52 @@ public class WeaponFormationController : MonoBehaviour
             }
         }
     }
+
+    #region Tutorial (dikhawe wale weapons)
+
+    /// <summary> Player abhi ungli se draw kar raha hai </summary>
+    public bool IsDrawing => isDragging;
+
+    /// <summary>
+    /// Tutorial ka haath jahan se guzre wahan asli jaisa (lekin nuqsan na karne wala) weapon - wahi pop, wahi awaaz
+    /// </summary>
+    public ThrownWeapon SpawnDummyAt(Vector2 screenPos, int index)
+    {
+        WeaponDataSO data = GetTargetWeapon();
+        if (data == null || data.weaponPrefab == null) return null;
+        Vector3 pos = GetWorldPosFromScreen(screenPos);
+        GameObject go = Instantiate(data.weaponPrefab, pos,
+            Quaternion.LookRotation(Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized));
+        ThrownWeapon w = go.GetComponent<ThrownWeapon>() ?? go.AddComponent<ThrownWeapon>();
+        w.Init(data);
+        w.IsDummy = true;
+        go.transform.localScale = Vector3.one * data.spawnScale * 0.2f;
+        go.transform.DOScale(Vector3.one * data.spawnScale, spawnPopDuration).SetEase(Ease.OutBack)
+            .OnComplete(() => { if (w != null) w.RestartVisualParticles(); });
+        SoundManager.Instance?.PlayWeaponSpawn(data.spawnSounds, index, data.spawnPitch, data.spawnVolume * 0.8f, data.firstSpawnSounds);
+        return w;
+    }
+
+    /// <summary> Tutorial: dikhawe wale weapons asli throw ki tarah aage </summary>
+    public void LaunchDummies(List<ThrownWeapon> list)
+    {
+        WeaponDataSO data = GetTargetWeapon();
+        Vector3 dir = Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized;
+        bool any = false;
+        foreach (var w in list)
+        {
+            if (w == null) continue;
+            w.transform.DOKill();
+            w.transform.localScale = Vector3.one * (data != null ? data.spawnScale : 1f);
+            w.transform.rotation = Quaternion.LookRotation(dir);
+            w.Launch(dir);
+            any = true;
+        }
+        if (any && data != null && data.launchSounds != null && data.launchSounds.Length > 0)
+            SoundManager.Instance?.PlayRandomSFX(data.launchSounds, 0.95f, 1.05f, 0.6f);
+    }
+
+    #endregion
 
     private void UpdateCameraTransform()
     {
@@ -376,6 +422,10 @@ public class WeaponFormationController : MonoBehaviour
                 SoundManager.Instance?.PlayRandomSFX(data.launchSounds, 0.95f, 1.05f, 0.8f);
 
             GameManager.Instance?.TriggerMediumHaptic();
+
+            // Throw ka 'kick': camera ka FOV pal bhar khulta hai (DOTween yoyo - wapas wahi FOV)
+            mainCamera.DOComplete();
+            mainCamera.DOFieldOfView(mainCamera.fieldOfView + 3.5f, 0.07f).SetEase(Ease.OutQuad).SetLoops(2, LoopType.Yoyo);
 
             // Seedha aage (flat forward): formation jaisi draw ki waisi hi aage jaye
             Vector3 dir = Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized;

@@ -39,6 +39,7 @@ public class Barricade : MonoBehaviour
     public event Action<float> OnHealthChanged; // percent
 
     private float nextHitSoundTime;
+    private float nextHitVfxTime;
     private Vector3 visualStartPos;
     private Tween shakeTween;
 
@@ -88,8 +89,10 @@ public class Barricade : MonoBehaviour
         visualRoot.localPosition = visualStartPos;
         shakeTween = visualRoot.DOShakePosition(0.18f, new Vector3(0.06f, 0.02f, 0.06f), 18, 90f, false, true);
 
-        if (hitVfx != null)
+        // Bohat zombies ek saath maarein to har hit par naya VFX nahi (qareeb aane par lag ki ek wajah)
+        if (hitVfx != null && Time.time >= nextHitVfxTime)
         {
+            nextHitVfxTime = Time.time + 0.25f;
             Vector3 p = new Vector3(fromPosition.x, transform.position.y + 0.8f, FrontZ);
             var fx = Instantiate(hitVfx, p, Quaternion.LookRotation(Vector3.forward));
             Destroy(fx, 1.5f);

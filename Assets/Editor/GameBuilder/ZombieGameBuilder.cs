@@ -418,6 +418,15 @@ public static partial class ZombieGameBuilder
         state.writeDefaultValues = true;
     }
 
+    /// <summary> Store ka naam aur package. Package publish ke baad kabhi badal nahi sakta </summary>
+    public static void ApplyBranding()
+    {
+        PlayerSettings.productName = "Last Throw";
+        PlayerSettings.companyName = "Bradford Games";
+        PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.bradfordgames.lastthrow");
+        AssetDatabase.SaveAssets();
+    }
+
     private static void ConfigurePlayerSettings()
     {
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
@@ -425,7 +434,7 @@ public static partial class ZombieGameBuilder
         PlayerSettings.allowedAutorotateToLandscapeRight = false;
         PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
         PlayerSettings.allowedAutorotateToPortrait = true;
-        PlayerSettings.productName = "Zombie Attack";
+        ApplyBranding();
 
         // Mobile performance: smooth 60fps frame pacing, IL2CPP ARM64, GPU skinning
         PlayerSettings.Android.optimizedFramePacing = true;

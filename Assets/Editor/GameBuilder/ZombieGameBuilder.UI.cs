@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
@@ -56,7 +57,14 @@ public static partial class ZombieGameBuilder
         BuildWinPanel(safe, ui);
         BuildFailPanel(safe, ui);
 
-        Set(ui, "damageVignette", vignette);
+        // Purana halka laal flash band - ab DamageScreenFX (khooni kinare + post fx + camera jhatka)
+        Set(ui, "damageVignette", (Image)null);
+        vignette.gameObject.SetActive(false);
+        BuildDamageScreenFX(canvasGo.transform);
+
+        BuildDamagePopups(canvasGo.transform);
+        BuildTutorial(canvasGo.transform);
+        BuildKillCam(canvasGo.transform);
 
         var grad = new Gradient();
         grad.SetKeys(
@@ -67,6 +75,214 @@ public static partial class ZombieGameBuilder
     }
 
     #region Screens
+
+    private static CanvasGroup builtHudGroup;
+
+    /// <summary> Hamle par screen: khud banaya khooni kinara texture + DamageScreenFX (DOTween) </summary>
+    private static void BuildDamageScreenFX(Transform canvasRoot)
+    {
+        Sprite edge = GenerateBloodEdgeSprite();
+        var img = Img(canvasRoot, "BloodEdge", edge, new Vector2(0.5f, 0.5f), Vector2.zero, new Color(1f, 1f, 1f, 0f));
+        StretchFull(img.rectTransform);
+        img.type = Image.Type.Simple;
+        img.preserveAspect = false;
+        img.rectTransform.SetSiblingIndex(1); // game ke upar, HUD ke neeche
+        img.enabled = false;
+
+        var fx = img.gameObject.AddComponent<DamageScreenFX>();
+        Set(fx, "bloodEdge", img);
+        Set(fx, "damageVolume", builtDamageVolume);
+        Set(fx, "mainCamera", builtMainCamera);
+        Set(fx, "heartbeatSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Weapons/Pro", "THUD_Dark")));
+    }
+
+    /// <summary>
+    /// 512x1024 khooni kinara: kinaron par gehra laal, noise se be-tarteeb dhabbe, upar se tapakti boondein, beech saaf
+    /// </summary>
+    private static Sprite GenerateBloodEdgeSprite()
+    {
+        string path = "Assets/_Game/UI/fx_blood_edge.png";
+        if (!System.IO.File.Exists(path))
+        {
+            const int W = 512, H = 1024;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            var rnd = new System.Random(7);
+            var drips = new List<Vector3>(); // x, width, length
+            for (int i = 0; i < 18; i++) drips.Add(new Vector3((float)rnd.NextDouble(), 0.004f + (float)rnd.NextDouble() * 0.012f, 0.08f + (float)rnd.NextDouble() * 0.22f));
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+            {
+                float u = x / (W - 1f), v = y / (H - 1f);
+                float dx = Mathf.Abs(u - 0.5f) * 2f, dy = Mathf.Abs(v - 0.5f) * 2f;
+                float r = Mathf.Pow(Mathf.Pow(dx, 4f) + Mathf.Pow(dy, 4f), 0.25f); // screen ke kinaron jaisa (squircle)
+                float n = Mathf.PerlinNoise(u * 5f + 3f, v * 10f + 1f) * 0.6f + Mathf.PerlinNoise(u * 17f, v * 31f) * 0.4f;
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.68f, 1.04f, r + (n - 0.5f) * 0.38f));
+                // Upar se tapakti boondein
+                float top = 1f - v;
+                foreach (var d in drips)
+                {
+                    if (top > d.z) continue;
+                    float t = top / d.z;
+                    float w = d.y * (1.15f - t) + (t > 0.9f ? d.y * 0.8f : 0f); // neeche ek gol boond
+                    if (Mathf.Abs(u - d.x) < w) a = Mathf.Max(a, 0.92f * (1f - t * 0.35f));
+                }
+                Color col = Color.Lerp(new Color(0.78f, 0.04f, 0.03f), new Color(0.32f, 0f, 0f), a);
+                col.a = Mathf.Clamp01(a) * 0.95f;
+                px[y * W + x] = col;
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            EnsureFolder("Assets/_Game/UI");
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+        }
+        if (AssetImporter.GetAtPath(path) is TextureImporter ti && ti.textureType != TextureImporterType.Sprite)
+        {
+            ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Single;
+            ti.mipmapEnabled = false;
+            ti.alphaIsTransparency = true;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.maxTextureSize = 1024;
+            ti.SaveAndReimport();
+        }
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    /// <summary> Hit numbers + coins + "DOUBLE KILL" (apna sub-canvas: har frame hilne se baaki UI rebuild na ho) </summary>
+    private static void BuildDamagePopups(Transform canvasRoot)
+    {
+        var root = Rect("DamagePopups", canvasRoot);
+        StretchFull(root);
+        root.gameObject.AddComponent<Canvas>(); // nested canvas
+        root.SetSiblingIndex(1); // vignette ke upar, HUD ke neeche
+
+        var template = Txt(root, "PopupTemplate", "36", 58f, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(240f, 90f), TextWhite, TextAlignmentOptions.Center, true);
+        var combo = Txt(root, "ComboText", "DOUBLE KILL!", 72f, new Vector2(0.5f, 0.5f), new Vector2(0f, 470f), new Vector2(1000f, 110f), new Color(1f, 0.45f, 0.15f), TextAlignmentOptions.Center, true);
+        combo.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 3f);
+
+        var dp = root.gameObject.AddComponent<DamagePopups>();
+        Set(dp, "template", template);
+        Set(dp, "comboText", combo);
+        Set(dp, "comboSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Weapons", "IMPACT_Metal_Hit_Sheet")));
+    }
+
+    /// <summary>
+    /// Haath wala tutorial: naya 'hand' sprite (ungli ki nok = pivot), title/sub text, raaste ke chamakte dots
+    /// </summary>
+    private static void BuildTutorial(Transform canvasRoot)
+    {
+        const string handPath = "Assets/ThirdParty/CasualUI/Sprite/Demo/Demo_Icon/hand.png";
+        // Naya hand: Single sprite, pivot ungli ki nok par (haath wahi jagah dabaye jahan weapon banta hai)
+        if (AssetImporter.GetAtPath(handPath) is TextureImporter ti)
+        {
+            var settings = new TextureImporterSettings();
+            ti.ReadTextureSettings(settings);
+            bool dirty = ti.textureType != TextureImporterType.Sprite || ti.spriteImportMode != SpriteImportMode.Single
+                         || settings.spriteAlignment != (int)SpriteAlignment.Custom || ti.spritePivot != new Vector2(0.29f, 0.98f);
+            if (dirty)
+            {
+                ti.textureType = TextureImporterType.Sprite;
+                ti.spriteImportMode = SpriteImportMode.Single;
+                settings.spriteMode = (int)SpriteImportMode.Single;
+                settings.spriteAlignment = (int)SpriteAlignment.Custom;
+                settings.spritePivot = new Vector2(0.29f, 0.98f);
+                ti.SetTextureSettings(settings);
+                ti.spritePivot = new Vector2(0.29f, 0.98f);
+                ti.alphaIsTransparency = true;
+                ti.mipmapEnabled = false;
+                ti.SaveAndReimport();
+            }
+        }
+        Sprite handSprite = AssetDatabase.LoadAllAssetsAtPath(handPath).OfType<Sprite>().FirstOrDefault();
+
+        var root = Rect("Tutorial", canvasRoot);
+        StretchFull(root);
+        var cg = root.gameObject.AddComponent<CanvasGroup>();
+        cg.blocksRaycasts = false; // player ki ungli neeche game tak pahunche
+        cg.interactable = false;
+
+        // Raaste ke dots (haath se pehle)
+        var dots = new Image[14];
+        for (int i = 0; i < dots.Length; i++)
+        {
+            dots[i] = Img(root, "Dot" + i, UISprite("Popup_00_Glow_white"), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(1f, 0.9f, 0.45f, 0.75f), new Vector2(46f, 46f));
+            dots[i].gameObject.SetActive(false);
+        }
+
+        // Upar saaf text (zombies/weapons ko na dhake), halki patti ke upar
+        var band = Img(root, "TextBand", UISprite("Background_ScreenDimed_Black"), new Vector2(0.5f, 0.5f), new Vector2(0f, 260f), new Color(1f, 1f, 1f, 0.55f), new Vector2(1400f, 230f));
+        var title = Txt(root, "Title", "DRAW A LINE", 92f, new Vector2(0.5f, 0.5f), new Vector2(0f, 290f), new Vector2(1000f, 120f), TextYellow, TextAlignmentOptions.Center, true);
+        var sub = Txt(root, "Sub", "Drag your finger to create weapons", 42f, new Vector2(0.5f, 0.5f), new Vector2(0f, 205f), new Vector2(1000f, 60f), TextWhite, TextAlignmentOptions.Center, true);
+
+        var hand = Img(root, "Hand", handSprite, new Vector2(0.5f, 0.5f), Vector2.zero, Color.white, new Vector2(200f, 213f));
+        hand.preserveAspect = true;
+        if (handSprite != null) hand.rectTransform.pivot = new Vector2(handSprite.pivot.x / handSprite.rect.width, handSprite.pivot.y / handSprite.rect.height);
+        hand.gameObject.SetActive(false);
+
+        var tc = root.gameObject.AddComponent<TutorialController>();
+        Set(tc, "group", cg);
+        Set(tc, "hand", hand.rectTransform);
+        Set(tc, "handImage", hand);
+        Set(tc, "titleText", title);
+        Set(tc, "subText", sub);
+        SetList(tc, "pathDots", dots);
+    }
+
+    /// <summary> Kill cam: alag camera + upar/neeche kaali cinematic pattiyan </summary>
+    private static void BuildKillCam(Transform canvasRoot)
+    {
+        var lb = Rect("Letterbox", canvasRoot);
+        StretchFull(lb);
+        lb.SetAsLastSibling();
+        var top = Img(lb, "Top", null, new Vector2(0.5f, 1f), Vector2.zero, Color.black, new Vector2(4000f, 0f));
+        top.rectTransform.pivot = new Vector2(0.5f, 1f);
+        var bottom = Img(lb, "Bottom", null, new Vector2(0.5f, 0f), Vector2.zero, Color.black, new Vector2(4000f, 0f));
+        bottom.rectTransform.pivot = new Vector2(0.5f, 0f);
+
+        if (builtKillCamera == null) return;
+        var kc = builtKillCamera.gameObject.AddComponent<KillCam>();
+        Set(kc, "killCamera", builtKillCamera);
+        Set(kc, "mainCamera", builtMainCamera);
+        Set(kc, "hudGroup", builtHudGroup);
+        Set(kc, "letterboxTop", top.rectTransform);
+        Set(kc, "letterboxBottom", bottom.rectTransform);
+        Set(kc, "fxVolume", builtKillCamVolume);
+        Set(kc, "fillLight", builtKillFill);
+        Set(kc, "timeWarpIn", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Start")));
+        Set(kc, "timeWarpOut", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Stop")));
+        Set(kc, "impactSounds", ClipsStartingWith("Assets/Audio/Game/Cinematic", "THUD_"));
+        // Impact par safed flash (letterbox ke neeche, poori screen)
+        var flash = Img(lb, "Flash", null, new Vector2(0.5f, 0.5f), Vector2.zero, new Color(1f, 1f, 1f, 0f));
+        StretchFull(flash.rectTransform);
+        flash.transform.SetAsFirstSibling();
+        flash.enabled = false;
+        Set(kc, "flashImage", flash);
+
+        // Level ke aakhir ka cinematic slow-mo (wahi letterbox pattiyan)
+        var endTitle = Txt(lb, "EndTitle", "LEVEL CLEARED", 118f, new Vector2(0.5f, 0.5f), new Vector2(0f, 230f), new Vector2(1400f, 160f), TextYellow, TextAlignmentOptions.Center, true);
+        var endSub = Txt(lb, "EndSubtitle", "32 ZOMBIES DOWN", 44f, new Vector2(0.5f, 0.5f), new Vector2(0f, 130f), new Vector2(1200f, 70f), TextWhite, TextAlignmentOptions.Center, true);
+        endSub.characterSpacing = 12f;
+        endTitle.gameObject.SetActive(false);
+        endSub.gameObject.SetActive(false);
+        var end = lb.gameObject.AddComponent<EndSlowMo>();
+        Set(end, "mainCamera", builtMainCamera);
+        Set(end, "winVolume", builtWinVolume);
+        Set(end, "failVolume", builtFailVolume);
+        Set(end, "hudGroup", builtHudGroup);
+        Set(end, "letterboxTop", top.rectTransform);
+        Set(end, "letterboxBottom", bottom.rectTransform);
+        Set(end, "titleText", endTitle);
+        Set(end, "subtitleText", endSub);
+        Set(end, "musicSource", builtMusicSource);
+        Set(end, "slowSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Start")));
+        Set(end, "resumeSound", FirstClip(ClipsStartingWith("Assets/Audio/Game/Cinematic", "TIME_WARP_Stop")));
+        Set(kc, "obstacleMask", (1 << 0) | (1 << LayerGround));
+    }
+
+    private static AudioClip FirstClip(AudioClip[] clips) => clips != null && clips.Length > 0 ? clips[0] : null;
 
     private static void BuildTopBar(RectTransform safe, UIManager ui)
     {
@@ -166,22 +382,21 @@ public static partial class ZombieGameBuilder
         var powerPill = Img(weaponBtn.transform, "PowerPill", UISprite("StatusBarFrame_White"), new Vector2(0.5f, 1f), new Vector2(0f, 26f), new Color(0.08f, 0.08f, 0.12f, 0.85f), new Vector2(230f, 52f));
         var hudPower = Txt(powerPill.transform, "Power", "DMG 36  x10", 30f, new Vector2(0.5f, 0.5f), new Vector2(0f, 1f), new Vector2(220f, 46f), TextYellow, TextAlignmentOptions.Center, true);
 
-        // Tutorial hint
-        var hint = Rect("TutorialHint", hud, new Vector2(0.5f, 0f), new Vector2(0f, 520f), new Vector2(900f, 400f));
-        var hand = Img(hint, "Hand", UISprite("Icon_ImageIcon_Tutorial_Hand"), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), Color.white, new Vector2(190f, 190f));
-        var handPulse = hand.gameObject.AddComponent<UIPulse>();
-        Set(handPulse, "mode", UIPulse.PulseMode.TapHand);
-        Set(handPulse, "amount", 170f);
-        Set(handPulse, "duration", 0.6f);
-        Txt(hint, "Text", "DRAG TO DRAW WEAPONS\nRELEASE TO THROW!", 50f, new Vector2(0.5f, 0.5f), new Vector2(0f, 130f), new Vector2(900f, 140f), TextYellow, TextAlignmentOptions.Center, true);
+        // Purana tutorial hint hata diya - naya haath wala tutorial (TutorialController) canvas par alag hai
 
-        // Wave banner
-        var banner = Rect("WaveBanner", hud, new Vector2(0.5f, 0.5f), new Vector2(0f, 260f), new Vector2(960f, 250f));
+        // Wave banner: chhoti patti HUD ke bilkul neeche (screen ka beech khula - zombies nazar aate rahein)
+        var banner = Rect("WaveBanner", hud, new Vector2(0.5f, 1f), new Vector2(0f, -400f), new Vector2(720f, 140f));
         var bannerCg = banner.gameObject.AddComponent<CanvasGroup>();
         bannerCg.blocksRaycasts = false;
-        var bannerBg = Img(banner, "BG", UISprite("Play_ActionText_Frame_Orange"), new Vector2(0.5f, 0.5f), Vector2.zero, Color.white, new Vector2(960f, 250f));
-        var bannerTitle = Txt(banner, "Title", "WAVE 1/3", 96f, new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(920f, 120f), TextWhite, TextAlignmentOptions.Center, true);
-        var bannerSub = Txt(banner, "Sub", "Zombies are coming...", 42f, new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(900f, 60f), TextYellow, TextAlignmentOptions.Center, true);
+        bannerCg.interactable = false;
+        var bannerBg = Img(banner, "BG", UISprite("Play_ActionText_Frame_Orange"), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(1f, 1f, 1f, 0.92f), new Vector2(720f, 140f));
+        var bannerTitle = Txt(banner, "Title", "WAVE 1/3", 62f, new Vector2(0.5f, 0.5f), new Vector2(0f, 16f), new Vector2(700f, 76f), TextWhite, TextAlignmentOptions.Center, true);
+        var bannerSub = Txt(banner, "Sub", "Zombies are coming...", 30f, new Vector2(0.5f, 0.5f), new Vector2(0f, -38f), new Vector2(680f, 40f), TextYellow, TextAlignmentOptions.Center, true);
+
+        // Kill cam mein HUD fade karne ke liye
+        var hudGroup = hud.gameObject.AddComponent<CanvasGroup>();
+        hudGroup.blocksRaycasts = true;
+        builtHudGroup = hudGroup;
 
         hud.gameObject.SetActive(false);
 
@@ -194,7 +409,6 @@ public static partial class ZombieGameBuilder
         Set(ui, "hudWeaponIcon", hudIcon);
         Set(ui, "hudWeaponName", hudName);
         Set(ui, "hudWeaponPower", hudPower);
-        Set(ui, "tutorialHint", hint.gameObject);
         Set(ui, "bossBarRoot", bossRoot.gameObject);
         Set(ui, "bossBarFill", bossFill);
         Set(ui, "bossBarName", bossName);
@@ -390,7 +604,8 @@ public static partial class ZombieGameBuilder
         StretchFull(panel);
         panel.gameObject.AddComponent<CanvasGroup>();
 
-        var dim = Img(panel, "Dim", UISprite("Background_ScreenDimed_Black"), Vector2.zero, Vector2.zero, new Color(1f, 1f, 1f, 0.9f));
+        // Halka dim: peeche game nazar aata rahe (pehle 0.9 = poori screen kaali)
+        var dim = Img(panel, "Dim", UISprite("Background_ScreenDimed_Black"), Vector2.zero, Vector2.zero, new Color(1f, 1f, 1f, 0.6f));
         StretchFull(dim.rectTransform);
         dim.raycastTarget = true;
 

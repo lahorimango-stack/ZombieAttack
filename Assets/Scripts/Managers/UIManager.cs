@@ -249,13 +249,14 @@ public class UIManager : MonoBehaviour
         waveBanner.DOKill();
         rt.DOKill();
         waveBanner.alpha = 0f;
-        rt.localScale = Vector3.one * 1.6f;
+        rt.localScale = Vector3.one * 1.25f;
 
+        // Chhota, upar wala banner: zombies peeche saaf nazar aate rahein
         DOTween.Sequence().SetTarget(waveBanner)
-            .Append(waveBanner.DOFade(1f, 0.2f))
-            .Join(rt.DOScale(1f, 0.35f).SetEase(Ease.OutBack))
-            .AppendInterval(1.4f)
-            .Append(waveBanner.DOFade(0f, 0.3f))
+            .Append(waveBanner.DOFade(1f, 0.15f))
+            .Join(rt.DOScale(1f, 0.3f).SetEase(Ease.OutBack))
+            .AppendInterval(1.1f)
+            .Append(waveBanner.DOFade(0f, 0.25f))
             .OnComplete(() => waveBanner.gameObject.SetActive(false));
     }
 
@@ -359,9 +360,12 @@ public class UIManager : MonoBehaviour
     public void FlashDamage()
     {
         if (damageVignette == null) return;
+        // Halka laal kinara - screen dhundli/dhaki na ho. Bohat zombies ek saath maarein to bar bar flash (aur canvas rebuild) nahi
+        if (damageVignette.color.a > 0.22f) return;
         vignetteTween?.Kill();
-        Color c = damageVignette.color; c.a = 0.85f; damageVignette.color = c;
-        vignetteTween = damageVignette.DOFade(0f, 0.7f).SetEase(Ease.InQuad);
+        float peak = Barricade.Instance != null ? Mathf.Lerp(0.55f, 0.3f, Barricade.Instance.HealthPercent) : 0.4f;
+        Color c = damageVignette.color; c.a = peak; damageVignette.color = c;
+        vignetteTween = damageVignette.DOFade(0f, 0.5f).SetEase(Ease.InQuad);
     }
 
     public void OnEnemyKilled(Vector3 worldPos, int coins)

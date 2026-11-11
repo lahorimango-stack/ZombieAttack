@@ -19,6 +19,8 @@ public class SoundManager : MonoBehaviour
 
     [Tooltip("Knife dushman/obstacle se takrane ka Hit sound")]
     [SerializeField] private AudioClip knifeHitSound;
+    [Tooltip("Zombie marne par bhaari 'thud' (hit ke upar layer - kill ka wazan)")]
+    [SerializeField] private AudioClip[] killImpactSounds;
 
     [Header("--- UI & Game Sound Clips ---")]
     [SerializeField] private AudioClip buttonClickSound;
@@ -104,12 +106,52 @@ public class SoundManager : MonoBehaviour
         PlaySFX(knifeSpawnSound, 0.9f, 1.15f, 0.5f);
     }
 
+    private AudioSource spawnSource;
+    private float nextSpawnSoundTime;
+
+    /// <summary>
+    /// Weapon draw hote hi uski apni awaaz. index = formation mein kaunsa weapon (pitch thoda thoda upar - build-up feel).
+    /// Alag AudioSource taake hit/throw sounds ka pitch na badle.
+    /// </summary>
+    public void PlayWeaponSpawn(AudioClip[] clips, int index, float basePitch, float volume, AudioClip[] firstClips = null)
+    {
+        if (isSfxMuted) return;
+        // Pehla weapon: talwar nikalne jaisa 'shing' (poora), baaki: chhoti metallic clicks jo pitch mein charhti hain
+        bool first = index == 0 && firstClips != null && firstClips.Length > 0;
+        AudioClip[] pool = first ? firstClips : clips;
+        AudioClip clip = pool != null && pool.Length > 0 ? pool[Random.Range(0, pool.Length)] : knifeSpawnSound;
+        if (clip == null) return;
+        if (Time.unscaledTime < nextSpawnSoundTime) return; // tez swipe mein ek frame ke 10 weapons = 1 awaaz
+        nextSpawnSoundTime = Time.unscaledTime + 0.035f;
+
+        if (spawnSource == null)
+        {
+            spawnSource = gameObject.AddComponent<AudioSource>();
+            spawnSource.playOnAwake = false;
+            spawnSource.spatialBlend = 0f;
+        }
+        if (first)
+        {
+            spawnSource.pitch = basePitch * Random.Range(0.97f, 1.03f);
+            spawnSource.PlayOneShot(clip, sfxVolume * Mathf.Min(1f, volume * 1.3f));
+            return;
+        }
+        spawnSource.pitch = basePitch * (1f + Mathf.Min(index, 12) * 0.045f) * Random.Range(0.98f, 1.02f);
+        spawnSource.PlayOneShot(clip, sfxVolume * volume);
+    }
+
     /// <summary>
     /// Knife impact / hit sound
     /// </summary>
     public void PlayHitSound()
     {
         PlaySFX(knifeHitSound, 0.9f, 1.1f);
+    }
+
+    /// <summary> Kill par bhaari thud (bohat saare ek saath maren to bhi ek) </summary>
+    public void PlayKillImpact()
+    {
+        PlayRandomSFX(killImpactSounds, 0.85f, 1.05f, 0.75f);
     }
 
     public void PlayButtonClick()

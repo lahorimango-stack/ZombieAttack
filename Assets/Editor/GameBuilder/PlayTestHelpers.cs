@@ -29,6 +29,7 @@ public static class PlayTestHelpers
         PlayerPrefs.DeleteAll();
     }
 
+    public static void JumpToLevel1() => JumpTo(1);
     public static void JumpToLevel5() => JumpTo(5);
     public static void JumpToLevel2() => JumpTo(2);
     public static void JumpToLevel3() => JumpTo(3);
@@ -53,6 +54,71 @@ public static class PlayTestHelpers
         }
         return "spawned";
     }
+
+    public static string KillCamArmOn() { KillCam.DebugAlwaysArm = true; return "armed"; }
+    public static string KillCamArmOff() { KillCam.DebugAlwaysArm = false; return "off"; }
+    public static string KillCamBusy() => KillCam.Instance == null ? "no killcam" : $"busy={KillCam.Instance.Busy} ts={Time.timeScale:0.00} final={KillCam.FinalKillArmed} quiet={KillCam.QuietMomentArmed}";
+
+    /// <summary> Test: 1 zombie saamne (5 health) - kill cam / damage number dekhne ke liye </summary>
+    public static string SpawnOneWeak()
+    {
+        var p = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/Enemies/Zombie_Walker.prefab");
+        var go = Object.Instantiate(p, new Vector3(0.2f, 0f, 8f), Quaternion.Euler(0f, 180f, 0f));
+        go.name = "CLOSE_Weak";
+        return "one";
+    }
+
+    /// <summary> Test: level ki gaadi ko goli maaro </summary>
+    public static string ShootCar()
+    {
+        var car = Object.FindAnyObjectByType<ExplosiveVehicle>();
+        if (car == null) return "no car";
+        for (int i = 0; i < 6; i++) car.TakeDamage(36f, car.transform.position + Vector3.up, Vector3.forward * 20f);
+        return "car shot " + car.transform.position;
+    }
+
+    /// <summary> Test: axe flight ko side se dekhna (KillCam camera side mein, waqt dheema) </summary>
+    public static string AxeSideView()
+    {
+        var cam = GameObject.Find("KillCam Camera");
+        if (cam == null) return "no cam";
+        cam.transform.position = new Vector3(3.2f, 1.4f, 5.5f);
+        cam.transform.LookAt(new Vector3(0f, 1.3f, 5.5f));
+        Time.timeScale = 0.08f;
+        return "side view ready";
+    }
+
+    /// <summary> Test: player ko hamla (screen damage effect dekhne ke liye) </summary>
+    public static string HurtPlayer()
+    {
+        Barricade.Instance.TakeDamage(Barricade.Instance.MaxHealth * 0.12f, new Vector3(0.5f, 0f, 3f));
+        return $"hp={Barricade.Instance.HealthPercent:0.00}";
+    }
+
+    /// <summary> Test: drawn axe ko side se dekhna (sar kis taraf) </summary>
+    public static string SideViewStill()
+    {
+        var cam = GameObject.Find("KillCam Camera");
+        if (cam == null) return "no cam";
+        var w = Object.FindAnyObjectByType<ThrownWeapon>();
+        Vector3 p = w != null ? w.transform.position : new Vector3(0f, 1.3f, 1.6f);
+        cam.transform.position = p + new Vector3(1.6f, 0.1f, 0f);
+        cam.transform.LookAt(p);
+        return "at " + p;
+    }
+
+    public static string ForceWin() { LevelManager.Instance.OnLevelCompleted(); return "win"; }
+    public static string ForceFail() { Barricade.Instance.TakeDamage(99999f, Vector3.forward * 3f); return "fail"; }
+
+    public static string EdgeAlpha()
+    {
+        var img = GameObject.Find("BloodEdge")?.GetComponent<UnityEngine.UI.Image>();
+        return img == null ? "no edge" : $"enabled={img.enabled} a={img.color.a:0.00} active={img.gameObject.activeInHierarchy} fx={DamageScreenFX.Instance != null}";
+    }
+
+    public static string TimeNormal() { Time.timeScale = 1f; return "ts=1"; }
+
+    public static string AliveCount() => $"alive={StandardEnemy.Active.Count} cap={LevelManager.Instance.CurrentLevelData.maxAliveOnField} total={LevelManager.Instance.TotalEnemiesInLevel}";
 
     public static string SpawnBosses()
     {

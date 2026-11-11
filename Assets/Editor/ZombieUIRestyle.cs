@@ -29,6 +29,7 @@ public static class ZombieUIRestyle
         { "ui_plate_green", new Vector4(70, 40, 70, 40) }, { "ui_plate_red", new Vector4(70, 40, 70, 40) },
         { "ui_fill_yellow", Vector4.zero }, { "ui_fill_white", Vector4.zero }, { "ui_fill_red", Vector4.zero }, { "ui_fill_orange", Vector4.zero },
         { "ui_logo", Vector4.zero },
+        { "ui_star_on", Vector4.zero }, { "ui_star_off", Vector4.zero }, { "ui_lock", Vector4.zero },
     };
 
     private static readonly Dictionary<string, string> SpriteMap = new Dictionary<string, string>
@@ -45,6 +46,8 @@ public static class ZombieUIRestyle
         { "Slider11_Fill_Yellow", "ui_fill_yellow" }, { "Slider10_Fill_Green", "ui_fill_white" },
         { "Slider10_Fill_Red", "ui_fill_red" }, { "Slider04_Fill_Orange", "ui_fill_orange" },
         { "Play_ActionText_Frame_Orange", "ui_banner_normal" }, { "Play_ActionText_Frame_Red", "ui_banner_danger" },
+        // High-res (512/256) - purane 45px stars aur 52px lock khinch kar dhundle lagte the
+        { "Icon_ImageIcon_StarGrade_l_On", "ui_star_on" }, { "Icon_ImageIcon_StarGrade_l_Off", "ui_star_off" }, { "Icon_ImageIcon_Lock01_m", "ui_lock" },
     };
 
     private static Vector4 V(float b) => new Vector4(b, b, b, b);
@@ -83,6 +86,7 @@ public static class ZombieUIRestyle
             if (img.type != Image.Type.Filled)
                 img.type = sprite.border != Vector4.zero ? Image.Type.Sliced : Image.Type.Simple;
             if (target == "ui_chip") img.color = Color.white;
+            if (target.StartsWith("ui_star") || target == "ui_lock") img.preserveAspect = true;
             EditorUtility.SetDirty(img);
 
             if (img.name == "TitleRibbon")

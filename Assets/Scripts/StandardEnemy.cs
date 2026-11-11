@@ -96,7 +96,8 @@ public class StandardEnemy : HumanoidEnemy
     [Range(0f, 1f)][SerializeField] protected float emergeSoundChance = 0f;
 
     [Header("--- Hit Feedback ---")]
-    [SerializeField] protected Color hitFlashColor = new Color(1f, 0.3f, 0.3f, 1f);
+    [Tooltip("Halka laal (poora laal zombie cartoon lagta tha)")]
+    [SerializeField] protected Color hitFlashColor = new Color(1f, 0.72f, 0.66f, 1f);
     [SerializeField] protected float hitFlashDuration = 0.08f;
     [SerializeField] protected GameObject hitBloodVfx;
     [SerializeField] protected GameObject deathVfx;
@@ -154,6 +155,8 @@ public class StandardEnemy : HumanoidEnemy
     private float lastDistToLine = float.MaxValue;
     private float sideEntryEndTime;
     private float sideEntryHalf = -1f;
+    private float nextBloodTime;
+    private static float globalNextBlood;
 
     /// <summary> Zinda zombies (camera pan lock inhe dekhta hai) </summary>
     public static readonly List<StandardEnemy> Active = new List<StandardEnemy>();
@@ -211,7 +214,7 @@ public class StandardEnemy : HumanoidEnemy
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetActive() => Active.Clear();
+    private static void ResetActive() { Active.Clear(); globalNextBlood = 0f; }
 
     private void SetupMovementAndAnimationSpeed()
     {
@@ -654,18 +657,25 @@ public class StandardEnemy : HumanoidEnemy
     {
         if (IsDead) return;
 
+        float before = Health;
         Health -= damage;
+
+        // Uchhalta damage number (sirf asal laga hua damage, overkill nahi)
+        DamagePopups.ShowDamage(ChestPoint + Vector3.up * 0.55f * transform.lossyScale.y, Mathf.Min(damage, before), IsDead, GetHashCode());
 
         if (hitSounds != null && hitSounds.Length > 0)
             Play3DSound(hitSounds[Random.Range(0, hitSounds.Length)]);
 
         GameManager.Instance?.TriggerLightHaptic();
 
-        if (hitBloodVfx != null)
+        // Khoon: chhota sa chheenta. Ek saath 10 knives lagen to 10 bade splash nahi (ajeeb + mobile lag)
+        if (hitBloodVfx != null && Time.time >= nextBloodTime && Time.time >= globalNextBlood)
         {
+            nextBloodTime = Time.time + 0.18f;
+            globalNextBlood = Time.time + 0.04f;
             Vector3 facing = impulse.sqrMagnitude > 0.01f ? -impulse : Vector3.back;
             var fx = Instantiate(hitBloodVfx, hitPoint, Quaternion.LookRotation(facing));
-            Destroy(fx, 2f);
+            Destroy(fx, 1.5f);
         }
 
         if (flashRoutine != null) StopCoroutine(flashRoutine);
@@ -693,13 +703,17 @@ public class StandardEnemy : HumanoidEnemy
 
         LevelManager.Instance?.OnEnemyKilled(gameObject);
         GameManager.Instance?.TriggerMediumHaptic();
+        SoundManager.Instance?.PlayKillImpact();
+        DamagePopups.ShowKill(ChestPoint + Vector3.up * 0.5f * transform.lossyScale.y, coinReward);
         RaiseDied();
 
         if (deathSounds != null && deathSounds.Length > 0)
             Play3DSound(deathSounds[Random.Range(0, deathSounds.Length)]);
 
-        if (deathVfx != null)
+        // Grenade se 8 ek saath maren to 8 bade blood blast nahi (mobile)
+        if (deathVfx != null && Time.time >= globalNextBlood)
         {
+            globalNextBlood = Time.time + 0.07f;
             var fx = Instantiate(deathVfx, hitPoint, Quaternion.LookRotation(impulse.sqrMagnitude > 0.01f ? impulse : Vector3.forward));
             Destroy(fx, 3f);
         }

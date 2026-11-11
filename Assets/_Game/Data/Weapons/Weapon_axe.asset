@@ -23,17 +23,20 @@ MonoBehaviour:
   minDistanceBetween: 0.4
   maxCount: 6
   spawnScale: 1
-  launchSpeed: 28
+  launchSpeed: 26
   useGravity: 0
   gravity: 12
   launchUpAngle: 0
-  spinAxis: {x: 0, y: 1, z: 0}
-  spinSpeed: 900
+  spinAxis: {x: 1, y: 0, z: 0}
+  spinSpeed: 1440
   useVisualEulers: 1
-  drawnVisualEuler: {x: 58, y: 0, z: 0}
-  flightVisualEuler: {x: 58, y: 0, z: 0}
+  drawnVisualEuler: {x: 68, y: 0, z: 0}
+  flightVisualEuler: {x: 0, y: -90, z: 0}
   alignToVelocity: 0
   lifeTime: 2.4
+  stickOnHit: 1
+  stuckVisualEuler: {x: 25, y: 0, z: 0}
+  stuckDepth: 0.02
   hitRadius: 0.3
   damage: 65
   pierceCount: 1
@@ -52,13 +55,25 @@ MonoBehaviour:
   maxRange: 22
   spawnVfx: {fileID: 0}
   hitVfx: {fileID: 6252713017724115476, guid: dc108d079515e0c45974222efb5d022f, type: 3}
+  hitVfxOnEnemies: 0
   explosionVfx: {fileID: 0}
+  firstSpawnSounds:
+  - {fileID: 8300000, guid: da1cc02d137cd1c4b8f3e238c46ec4ed, type: 3}
+  spawnSounds:
+  - {fileID: 8300000, guid: f7bebb03737ea374aa03ed1ddebff4e9, type: 3}
+  - {fileID: 8300000, guid: 2fa56ade5cfed39409eb58da8fbc875f, type: 3}
+  - {fileID: 8300000, guid: e6991dc3800c2414084f32faeec79d67, type: 3}
+  - {fileID: 8300000, guid: 90aae7de3047c96409c382b68b1ac242, type: 3}
+  spawnPitch: 0.95
+  spawnVolume: 0.55
   launchSounds:
   - {fileID: 8300000, guid: 47598b071a762ce4d86ff6e587d88b77, type: 3}
   - {fileID: 8300000, guid: 855ecd91a6a32cc43a864bef459aed70, type: 3}
   hitSounds:
+  - {fileID: 8300000, guid: 2a096a7fbd58e374087f8abf50540bf1, type: 3}
+  - {fileID: 8300000, guid: 80fc18fe54d8b56458515ee134974c1d, type: 3}
+  - {fileID: 8300000, guid: 07c0be38e08318248ad7f30bf50962de, type: 3}
+  - {fileID: 8300000, guid: a54df2df3adbe1f4382904cc1a80165c, type: 3}
   - {fileID: 8300000, guid: 5de35d095a26a5042a71af599850b917, type: 3}
-  - {fileID: 8300000, guid: 0af289c545eba48458b44277ed6c7dc9, type: 3}
-  - {fileID: 8300000, guid: a25a64f99758c604b8080ae56aef847d, type: 3}
   explosionSounds: []
   cameraShake: 0

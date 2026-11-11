@@ -117,6 +117,9 @@ public static partial class ZombieGameBuilder
                 }
             }
 
+            if (kv.Key == "VFX_BloodHit" || kv.Key == "VFX_BloodDeath2")
+                MakeMobileBlood(inst, kv.Key == "VFX_BloodHit");
+
             if (kv.Key == "VFX_RocketTrail")
             {
                 // Root particle rocket mesh render karta hai - hamare paas apna mesh hai
@@ -130,6 +133,50 @@ public static partial class ZombieGameBuilder
 
         BuildComboVfx("VFX_BigExplosion", 1f, "VFX_ExploBarrel");
         BuildComboVfx("VFX_GroundExplosion", 1.3f, "VFX_ExploDefault", "VFX_ExploBarrel");
+    }
+
+    /// <summary>
+    /// Realistic blood ko mobile/game ke laayak: lambi laal dhaariyan (streaks) aur haddiyan band,
+    /// 1000-3000 particles ki physics collision band (qareeb zombies par lag ki asal wajah), chhota size.
+    /// </summary>
+    private static void MakeMobileBlood(GameObject inst, bool isHit)
+    {
+        float size = isHit ? 0.45f : 0.7f;
+        foreach (var ps in inst.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            string n = ps.gameObject.name;
+            bool drop = n.Contains("streaks") || n.Contains("Bones") || n.Contains("SubEmitter") || n.Contains("Smoke")
+                        || (isHit && n.Contains("Ground"));
+            if (drop)
+            {
+                ps.gameObject.SetActive(false);
+                continue;
+            }
+
+            var main = ps.main;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+            main.maxParticles = Mathf.Min(main.maxParticles, isHit ? 14 : 30);
+            var col = ps.collision; col.enabled = false;
+            var sub = ps.subEmitters; sub.enabled = false;
+
+            // Burst kam (chheentay ginti mein kam, bade dhabbe nahi)
+            var em = ps.emission;
+            for (int b = 0; b < em.burstCount; b++)
+            {
+                var burst = em.GetBurst(b);
+                var c = burst.count;
+                if (c.mode == ParticleSystemCurveMode.Constant) c.constant = Mathf.Max(1f, Mathf.Round(c.constant * 0.5f));
+                else if (c.mode == ParticleSystemCurveMode.TwoConstants) { c.constantMin = Mathf.Max(1f, Mathf.Round(c.constantMin * 0.5f)); c.constantMax = Mathf.Max(1f, Mathf.Round(c.constantMax * 0.5f)); }
+                burst.count = c;
+                em.SetBurst(b, burst);
+            }
+
+            var r = ps.GetComponent<ParticleSystemRenderer>();
+            if (r != null && r.renderMode == ParticleSystemRenderMode.Stretch)
+                r.lengthScale = Mathf.Min(r.lengthScale, 1.2f);
+            if (r != null) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false; }
+        }
+        inst.transform.localScale = Vector3.one * size;
     }
 
     /// <summary> Realistic explosion: aag ka gola + gehra dhuaan ek saath </summary>
@@ -176,6 +223,7 @@ public static partial class ZombieGameBuilder
         public bool hovlFlip;
         public bool faceCamera; // lambi axis upar (Y), flat chehra camera ki taraf
         public Vector3 extraRot; // faceCamera ke baad extra rotation (X 90 = nok enemy ki taraf)
+        public float pivotShiftY; // ghoomne ka markaz (axe: sar ke qareeb = center of mass)
         public System.Action<WeaponDataSO> configure;
     }
 
@@ -183,6 +231,16 @@ public static partial class ZombieGameBuilder
     {
         string W = "Assets/Audio/Game/Weapons";
         var stab = new[] { AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Knife Stab 01.mp3"), AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Knife Stab 02.mp3") }.Where(x => x != null);
+        // Draw karte hi har weapon ki awaaz (blade = "shing", bomb = click, rocket = dhaat)
+        var drawBlade = new[] { AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Knife Draw 1.mp3"), AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Knife Draw 2.mp3") }.Where(x => x != null).ToArray();
+        var drawClick = ClipsStartingWith("Assets/Audio/Game/UI", "UI_Click_Snappy");
+        var drawMetal = ClipsStartingWith(W, "sfx_metal_hit");
+        // Pro sounds (Universal Sound FX): pehla weapon = talwar ka "shing", baaki = chhoti metallic clicks
+        string P = W + "/Pro";
+        var bladeShing = ClipsStartingWith(P, "SWORD_Blade_Slide");
+        var tick = ClipsStartingWith(P, "HANDLING_Switch");
+        var knifeHits = ClipsStartingWith(P, "GORE_Deep_Short_Stab").Concat(ClipsStartingWith(P, "SWORD_Swing_Stab_Body_Gore")).ToArray();
+        var axeHits = ClipsStartingWith(P, "BLUNT_Swing_Hit_Splat").Concat(ClipsStartingWith(P, "GORE_Deep_Medium_Cut")).Concat(ClipsStartingWith(W, "GORE_Blade_Chop")).ToArray();
         var specs = new List<WeaponSpec>
         {
             new WeaponSpec
@@ -198,24 +256,33 @@ public static partial class ZombieGameBuilder
                     d.lifeTime = 2f; d.hitRadius = 0.28f;
                     d.damage = 36f; d.pierceCount = 0; d.impactForce = 20f;
                     d.spawnVfx = null; d.hitVfx = Vfx("VFX_ImpactMetal");
+                    d.firstSpawnSounds = bladeShing; d.spawnSounds = tick; d.spawnPitch = 1.35f; d.spawnVolume = 0.45f; d.hitVfxOnEnemies = false;
+                    d.stickOnHit = true; d.stuckVisualEuler = new Vector3(-5f, 0f, 0f); d.stuckDepth = -0.13f; // nok jism mein
                     d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Blade");
-                    d.hitSounds = stab.Concat(ClipsStartingWith(W, "GORE_Deep_Short_Splat")).ToArray();
+                    d.hitSounds = knifeHits.Length > 0 ? knifeHits : stab.Concat(ClipsStartingWith(W, "GORE_Deep_Short_Splat")).ToArray();
                 }
             },
             new WeaponSpec
             {
                 id = "axe", displayName = "Axe", description = "Heavy spinning axe. Cuts through 2 zombies!",
-                meshPath = LPS + "Weapons/Melee/SM_Axe_01.fbx", length = 0.6f, faceCamera = true, hovlVisual = "VFX_HovlYellow", hovlScale = 0.4f, theme = new Color(1f, 0.75f, 0.35f),
+                meshPath = LPS + "Weapons/Melee/SM_Axe_01.fbx", length = 0.6f, faceCamera = true, pivotShiftY = -0.16f, hovlVisual = "VFX_HovlYellow", hovlScale = 0.4f, theme = new Color(1f, 0.75f, 0.35f),
                 configure = d =>
                 {
-                    // Haath mein pakdi kulhaadi: sar aage aur upar, blade zombies ki taraf
-                    d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(58f, 0f, 0f); d.flightVisualEuler = new Vector3(58f, 0f, 0f);
+                    // Draw par seedhi khari (sar upar, halki aage jhuki); throw par asli kulhaadi ki tarah
+                    // aage ki taraf qalabaziyan (end over end, flight ki X axis par)
+                    // THROW: asli kulhaadi - blade ki dhaar aage (Y 90 = kulhaadi ka plane flight ke plane mein),
+                    // sar ke qareeb (center of mass) ke gird aage ki taraf qalabaziyan, ~2.5 chakkar/sec
+                    // Draw par bhi wahi rukh: kulhaadi ka sar/dhaar AAGE (zombies ki taraf) - release par koi jhatka (snap) nahi
+                    // Draw: knife jaisa - aage jhuki (X 68), sar zombies ki taraf, handle player ki taraf
+                    d.useVisualEulers = true; d.drawnVisualEuler = new Vector3(68f, 0f, 0f); d.flightVisualEuler = new Vector3(0f, -90f, 0f);
+                    d.stickOnHit = true; d.stuckVisualEuler = new Vector3(25f, 0f, 0f); d.stuckDepth = 0.02f; // blade andar, handle neeche latka
                     d.unlockLevel = 1; d.spawnInterval = 0.13f; d.minDistanceBetween = 0.4f; d.maxCount = 6;
-                    d.launchSpeed = 28f; d.spinAxis = Vector3.up; d.spinSpeed = 900f; d.lifeTime = 2.4f; d.hitRadius = 0.3f;
+                    d.launchSpeed = 26f; d.spinAxis = Vector3.right; d.spinSpeed = 1440f; d.lifeTime = 2.4f; d.hitRadius = 0.3f;
                     d.damage = 65f; d.pierceCount = 1; d.impactForce = 30f;
                     d.hitVfx = Vfx("VFX_ImpactMetal");
+                    d.firstSpawnSounds = ClipsStartingWith(P, "SWORD_Blade_Slide_04"); d.spawnSounds = tick; d.spawnPitch = 0.95f; d.spawnVolume = 0.55f; d.hitVfxOnEnemies = false;
                     d.launchSounds = ClipsStartingWith(W, "WHOOSH_Deep_Smooth");
-                    d.hitSounds = ClipsStartingWith(W, "GORE_Blade_Chop").Concat(ClipsStartingWith(W, "GORE_Deep_Short_Cut")).ToArray();
+                    d.hitSounds = axeHits;
                 }
             },
             new WeaponSpec
@@ -228,6 +295,7 @@ public static partial class ZombieGameBuilder
                     d.launchSpeed = 40f; d.spinSpeed = 0f; d.lifeTime = 2f; d.hitRadius = 0.24f;
                     d.damage = 34f; d.pierceCount = 2; d.impactForce = 24f;
                     d.spawnVfx = Vfx("VFX_FlashCrystal"); d.hitVfx = Vfx("VFX_HitCrystal");
+                    d.firstSpawnSounds = ClipsStartingWith(P, "ICE_Cracking"); d.spawnSounds = tick; d.spawnPitch = 1.8f; d.spawnVolume = 0.35f;
                     d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Blade");
                     d.hitSounds = stab.Concat(ClipsStartingWith(W, "GORE_Deep_Short_Squirt")).ToArray();
                 }
@@ -245,6 +313,7 @@ public static partial class ZombieGameBuilder
                     d.fireZoneDuration = 4f; d.fireZoneRadius = 2.2f; d.fireZoneDps = 35f; d.fireZoneVfx = Vfx("VFX_Fire");
                     d.chainCount = 0;
                     d.explosionVfx = Vfx("VFX_MiniFire");
+                    d.firstSpawnSounds = null; d.spawnSounds = tick; d.spawnPitch = 0.85f; d.spawnVolume = 0.55f;
                     d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Fast_Subtle");
                     d.explosionSounds = ClipsStartingWith(W, "MAGIC_SPELL_Flame");
                 }
@@ -259,6 +328,7 @@ public static partial class ZombieGameBuilder
                     d.spinAxis = new Vector3(1f, 0.4f, 0.2f); d.spinSpeed = 600f; d.lifeTime = 4f; d.hitRadius = 0.18f;
                     d.damage = 0f; d.explosionRadius = 2.4f; d.explosionDamage = 120f; d.impactForce = 34f; d.cameraShake = 0.18f;
                     d.explosionVfx = Vfx("VFX_BigExplosion");
+                    d.firstSpawnSounds = null; d.spawnSounds = tick; d.spawnPitch = 0.95f; d.spawnVolume = 0.55f;
                     d.launchSounds = ClipsStartingWith(W, "WHOOSH_Air_Fast_Subtle");
                     d.explosionSounds = ClipsStartingWith(W, "EXPLOSION_Short");
                 }
@@ -273,6 +343,7 @@ public static partial class ZombieGameBuilder
                     d.launchSpeed = 20f; d.alignToVelocity = true; d.spinSpeed = 0f; d.lifeTime = 3f; d.hitRadius = 0.3f;
                     d.damage = 0f; d.explosionRadius = 3f; d.explosionDamage = 200f; d.impactForce = 42f; d.cameraShake = 0.3f;
                     d.explosionVfx = Vfx("VFX_GroundExplosion");
+                    d.firstSpawnSounds = ClipsStartingWith(P, "HANDLING_B_FS92"); d.spawnSounds = tick; d.spawnPitch = 0.7f; d.spawnVolume = 0.5f;
                     d.launchSounds = ClipsStartingWith(W, "ROCKET_Launch");
                     d.explosionSounds = ClipsStartingWith(W, "EXPLOSION_Short");
                 }
@@ -349,6 +420,8 @@ public static partial class ZombieGameBuilder
 
                 b = GetRenderBounds(model);
                 model.transform.position -= b.center - root.transform.position;
+                // Ghoomne ka markaz: axe sar ke qareeb (center of mass) - warna handle ke beech se ghoom kar ajeeb lagti thi
+                model.transform.position += Vector3.up * spec.pivotShiftY;
 
                 foreach (var r in model.GetComponentsInChildren<Renderer>(true))
                 {
@@ -747,7 +820,8 @@ public static partial class ZombieGameBuilder
         audio.volume = spec.boss ? 1f : 0.7f;
 
         if (spec.bomber) MakeBomber(inst, explosionSounds);
-        if (spec.healthBar) AddHealthBar(inst, enemy, spec);
+        // Har zombie ke sar par chhota bar (sirf hit par). Boss ka bara bar HUD par hai - wahan double nahi
+        if (!spec.boss) AddHealthBar(inst, enemy, spec);
 
         PrefabUtility.SaveAsPrefabAsset(inst, EnemyPath(prefabName));
         Object.DestroyImmediate(inst);
@@ -809,18 +883,24 @@ public static partial class ZombieGameBuilder
 
     private static void AddHealthBar(GameObject inst, StandardEnemy enemy, EnemySpec spec)
     {
-        Bounds b = GetRenderBounds(inst);
-        float headY = (b.max.y - inst.transform.position.y) / spec.scale;
+        // Sar ki haddi se (bounds 35% barhaye hue hain - unse bar sar se bohat upar jata tha). Runtime par bar haddi ke saath chalta hai
+        var anim = inst.GetComponentInChildren<Animator>();
+        Transform headBone = anim != null && anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Head) : null;
+        float headY = headBone != null ? inst.transform.InverseTransformPoint(headBone.position).y : 1.7f;
+
+        // Aam zombie ka bar chhota (0.68m), brute ka thoda bara
+        float barScale = spec.healthBar ? spec.barScale * 0.9f : 0.62f;
 
         var barGo = new GameObject("HealthBar", typeof(RectTransform));
         barGo.transform.SetParent(inst.transform, false);
-        barGo.transform.localPosition = new Vector3(0f, headY + 0.25f, 0f);
-        barGo.transform.localScale = Vector3.one * (0.01f * spec.barScale / spec.scale);
+        barGo.transform.localPosition = new Vector3(0f, headY + 0.38f / Mathf.Max(0.01f, inst.transform.localScale.y), 0f);
+        barGo.transform.localScale = Vector3.one * (0.01f * barScale / inst.transform.localScale.x);
 
         var canvas = barGo.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
         canvas.sortingOrder = 5;
         ((RectTransform)barGo.transform).sizeDelta = new Vector2(110f, 16f);
+        barGo.AddComponent<CanvasGroup>().blocksRaycasts = false;
 
         Image bg = CreateBarImage(barGo.transform, "BG", UISprite("Slider10_Frame"), new Color(0f, 0f, 0f, 0.75f), false);
         Image trail = CreateBarImage(barGo.transform, "Trail", UISprite("Slider10_Fill_Red"), new Color(1f, 1f, 1f, 0.9f), true);
@@ -900,81 +980,80 @@ public static partial class ZombieGameBuilder
 
     private static void BuildLevels()
     {
-        var F = LevelDataSO.SpawnSide.Front; var L = LevelDataSO.SpawnSide.Left; var R = LevelDataSO.SpawnSide.Right;
+        var F = LevelDataSO.SpawnSide.Front;
         var S = LevelDataSO.SpawnSide.Sides; var M = LevelDataSO.SpawnSide.Mixed;
+        const string W = "Zombie_Walker", WF = "Zombie_WalkerF", RN = "Zombie_Runner", SP = "Zombie_Sprinter",
+                     CR = "Zombie_Crawler", BM = "Zombie_Bomber", BR = "Zombie_Brute";
 
-        // Design (pacing): har wave runners ke rush se 1-2 sec mein shuru (foran action), beech mein dobara rush,
-        // walkers lagataar dabao. Tez (runner/sprinter) ~30%. Agli wave 60% marne par (saans lene ka waqt kam).
-        // Health: L1 mein walker ko knife ke 3 hit, runner ko 2 (1 shot mein nahi), har level mazboot.
+        // DIFFICULTY GRAPH (aara/sawtooth): L1 aasaan -> L2 thoda -> L3, L4 mushkil -> L5 BOHAT mushkil (boss)
+        // -> L6 phir aasaan (naya rocket) -> L7..L9 barhta -> L10 sab se mushkil (final boss).
+        // Organized flow: "maxAlive" = ek waqt mein field par zyada se zyada zombies (L1 = 6). Naya zombie tab aata
+        // hai jab koi mare - "unlimited zombies" wala ehsaas nahi. Har wave runners ke chhote rush se shuru (suspense),
+        // phir walkers ek ek kar ke, beech mein dobara rush. Agli wave 75% marne par (pichli wave saaf ho kar).
 
-        // L1: sirf saamne se - walkers + runner rush
-        CreateLevel(1, "First Night", "Draw weapons, release to throw!", false, 150f, 40, 1.2f, 1f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 3, 0.5f, 0.5f, F), Pack("Zombie_Walker", 8, 0.7f, 1.5f, F), Pack("Zombie_WalkerF", 5, 0.8f, 3f, F), Pack("Zombie_Runner", 3, 0.45f, 8f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.45f, 0.5f, F), Pack("Zombie_Walker", 8, 0.75f, 1f, F), Pack("Zombie_WalkerF", 6, 0.8f, 3f, F), Pack("Zombie_Runner", 3, 0.45f, 9f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Runner", 4, 0.45f, 0.5f, F), Pack("Zombie_Walker", 9, 0.7f, 1f, F), Pack("Zombie_WalkerF", 7, 0.7f, 2.5f, F), Pack("Zombie_Runner", 4, 0.45f, 7f, F), Pack("Zombie_Runner", 4, 0.45f, 12f, F)));
+        // L1 (aasaan, 30): sirf saamne se
+        CreateLevel(1, "First Night", "Draw weapons, release to throw!", false, 150f, 40, 1.25f, 1f, 8,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 2, 0.7f, 0.5f, F), Pack(W, 4, 1.4f, 2f, F), Pack(WF, 2, 1.6f, 5f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(RN, 2, 0.6f, 0.5f, F), Pack(W, 4, 1.2f, 2f, F), Pack(WF, 3, 1.3f, 4f, F)),
+            Wave("Final", 2f, 1f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(W, 5, 0.9f, 1.5f, F), Pack(WF, 3, 1f, 3f, F), Pack(RN, 4, 0.5f, 8f, F)));
 
-        // L2: crawlers (neecha nishana) + pehla sprinter
-        CreateLevel(2, "Low Crawl", "Some of them crawl... aim low!", false, 150f, 50, 1.25f, 1.02f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 4, 0.35f, 0.5f, F), Pack("Zombie_Walker", 8, 0.75f, 1.5f, F), Pack("Zombie_Crawler", 2, 2f, 3f, F), Pack("Zombie_Runner", 4, 0.35f, 9f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.35f, 0.5f, F), Pack("Zombie_WalkerF", 8, 0.7f, 1f, F), Pack("Zombie_Crawler", 3, 1.6f, 2f, F), Pack("Zombie_Walker", 6, 0.9f, 4f, F), Pack("Zombie_Runner", 3, 0.6f, 9f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 10, 0.6f, 1f, F), Pack("Zombie_WalkerF", 8, 0.7f, 2f, F), Pack("Zombie_Crawler", 4, 1.5f, 3f, F), Pack("Zombie_Sprinter", 2, 1.5f, 7f, F)));
+        // L2 (thoda mushkil, 41): rengne wale + pehla sprinter
+        CreateLevel(2, "Low Crawl", "Some of them crawl... aim low!", false, 150f, 50, 1.35f, 1.05f, 11,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 2, 0.5f, 0.5f, F), Pack(W, 5, 1f, 1.5f, F), Pack(CR, 2, 2f, 3f, F), Pack(RN, 2, 0.5f, 8f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(WF, 5, 1f, 1.5f, F), Pack(CR, 2, 1.8f, 3f, F), Pack(W, 3, 1.1f, 5f, F), Pack(SP, 1, 1f, 7f, F)),
+            Wave("Final", 2f, 1f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(W, 6, 0.9f, 1.5f, F), Pack(WF, 4, 1f, 3f, F), Pack(CR, 3, 1.5f, 4f, F), Pack(SP, 1, 1f, 8f, F)));
 
-        // L3: galiyon (left/right) se bhi
-        CreateLevel(3, "The Alleys", "They come from the sides too!", false, 160f, 60, 1.3f, 1.04f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 3, 0.6f, 0.5f, F), Pack("Zombie_Walker", 8, 0.8f, 1.5f, F), Pack("Zombie_WalkerF", 4, 1.4f, 3f, S), Pack("Zombie_Runner", 3, 0.6f, 7f, S)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Runner", 3, 0.5f, 0.5f, S), Pack("Zombie_Walker", 8, 0.7f, 1f, M), Pack("Zombie_Crawler", 3, 1.5f, 2f, F), Pack("Zombie_WalkerF", 6, 1f, 3f, S), Pack("Zombie_Runner", 3, 0.6f, 8f, M)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_WalkerF", 10, 0.6f, 1f, M), Pack("Zombie_Walker", 6, 0.8f, 4f, F), Pack("Zombie_Sprinter", 2, 1.5f, 6f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, M), Pack("Zombie_Walker", 12, 0.55f, 1f, M), Pack("Zombie_WalkerF", 8, 0.7f, 2f, S), Pack("Zombie_Crawler", 3, 1.5f, 4f, F), Pack("Zombie_Sprinter", 2, 1.2f, 8f, F), Pack("Zombie_Runner", 4, 0.5f, 11f, S)));
+        // L3 (mushkil, 52): galiyon se bhi
+        CreateLevel(3, "The Alleys", "They come from the sides too!", false, 160f, 60, 1.52f, 1.07f, 14,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(W, 6, 0.9f, 1.5f, F), Pack(WF, 3, 1.4f, 3f, S), Pack(RN, 2, 0.6f, 8f, S)),
+            Wave("Wave 2", 2f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, S), Pack(W, 6, 0.85f, 1f, M), Pack(CR, 2, 1.5f, 2f, F), Pack(WF, 4, 1f, 3f, S), Pack(SP, 2, 1f, 6f, F)),
+            Wave("Final", 2f, 1f, Pack(RN, 3, 0.5f, 0.5f, M), Pack(W, 8, 0.8f, 1f, M), Pack(WF, 5, 0.9f, 2f, S), Pack(CR, 2, 1.5f, 4f, F), Pack(SP, 2, 1.2f, 7f, F), Pack(RN, 3, 0.5f, 11f, S)));
 
-        // L4: bombers (door se maaro!)
-        CreateLevel(4, "Bloaters", "Green ones explode - kill them far away!", false, 170f, 70, 1.35f, 1.06f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 3, 0.6f, 0.5f, F), Pack("Zombie_Walker", 10, 0.7f, 1.5f, F), Pack("Zombie_Bomber", 1, 1f, 5f, F), Pack("Zombie_Runner", 3, 0.6f, 8f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Runner", 3, 0.5f, 0.5f, S), Pack("Zombie_WalkerF", 10, 0.6f, 1f, M), Pack("Zombie_Crawler", 3, 1.4f, 2f, S), Pack("Zombie_Bomber", 2, 3f, 3f, F), Pack("Zombie_Sprinter", 1, 1f, 8f, F)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, M), Pack("Zombie_Walker", 12, 0.55f, 1f, M), Pack("Zombie_Bomber", 2, 3f, 4f, F), Pack("Zombie_Sprinter", 2, 1.2f, 7f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 12, 0.5f, 1f, M), Pack("Zombie_WalkerF", 10, 0.6f, 2f, S), Pack("Zombie_Bomber", 3, 2.5f, 3f, F), Pack("Zombie_Sprinter", 2, 1.2f, 8f, M), Pack("Zombie_Runner", 4, 0.5f, 11f, M)));
+        // L4 (mushkil, 62): bombers - door se maaro
+        CreateLevel(4, "Bloaters", "Green ones explode - kill them far away!", false, 165f, 70, 1.65f, 1.09f, 17,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(W, 7, 0.85f, 1.5f, F), Pack(BM, 1, 1f, 5f, F), Pack(SP, 2, 1f, 6f, F), Pack(RN, 3, 0.5f, 8f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, S), Pack(WF, 7, 0.8f, 1f, M), Pack(CR, 2, 1.4f, 2f, S), Pack(BM, 2, 3f, 3f, F), Pack(SP, 1, 1f, 8f, F)),
+            Wave("Final", 2f, 1f, Pack(RN, 4, 0.5f, 0.5f, F), Pack(W, 8, 0.7f, 1f, M), Pack(WF, 4, 0.8f, 2f, S), Pack(BM, 2, 3f, 3f, F), Pack(SP, 2, 1.2f, 7f, M), Pack(RN, 3, 0.5f, 11f, M)));
 
-        // L5: MINI-BOSS (The Butcher) + pehla brute
-        CreateLevel(5, "The Butcher", "Something huge is coming...", true, 190f, 120, 1.4f, 1.06f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 12, 0.6f, 1.5f, M), Pack("Zombie_Crawler", 3, 1.5f, 3f, F), Pack("Zombie_Runner", 3, 0.6f, 9f, S)),
-            Wave("Wave 2", 1.5f, 0.65f, Pack("Zombie_Brute", 1, 1f, 0f, F), Pack("Zombie_Runner", 4, 0.5f, 1f, M), Pack("Zombie_WalkerF", 10, 0.6f, 2f, S), Pack("Zombie_Bomber", 2, 3f, 4f, F), Pack("Zombie_Sprinter", 2, 1.2f, 8f, F)),
-            Wave("BOSS", 2f, 1f, Pack("Zombie_MiniBoss", 1, 1f, 0f, F, 1f), Pack("Zombie_Runner", 4, 0.5f, 2f, M), Pack("Zombie_Walker", 10, 0.8f, 3f, M), Pack("Zombie_WalkerF", 6, 1f, 6f, S), Pack("Zombie_Bomber", 2, 4f, 8f, F), Pack("Zombie_Sprinter", 2, 1.5f, 10f, F)));
+        // L5 (BOHAT mushkil, 59 + boss): MINI-BOSS "The Butcher" + pehla brute
+        CreateLevel(5, "The Butcher", "Something huge is coming...", true, 170f, 120, 1.8f, 1.12f, 20,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 4, 0.45f, 0.5f, F), Pack(W, 9, 0.6f, 1.5f, M), Pack(CR, 3, 1.5f, 3f, F), Pack(SP, 2, 1f, 5f, F), Pack(RN, 4, 0.45f, 8f, S)),
+            Wave("Wave 2", 2f, 0.75f, Pack(BR, 2, 3f, 0f, F), Pack(RN, 5, 0.4f, 1f, M), Pack(WF, 8, 0.6f, 2f, S), Pack(BM, 2, 3f, 4f, F), Pack(SP, 3, 1f, 6f, F)),
+            Wave("BOSS", 2.5f, 1f, Pack("Zombie_MiniBoss", 1, 1f, 0f, F, 1f), Pack(RN, 5, 0.4f, 2f, M), Pack(W, 9, 0.6f, 3f, M), Pack(WF, 6, 0.7f, 5f, S), Pack(BR, 1, 1f, 8f, F), Pack(BM, 2, 4f, 8f, F), Pack(SP, 4, 1f, 9f, F), Pack(RN, 4, 0.4f, 14f, M)));
 
-        // L6: sprinters ka level - bohat daudne wale
-        CreateLevel(6, "Night Runners", "Watch out for the fast ones!", false, 190f, 90, 1.45f, 1.08f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 12, 0.55f, 1.5f, M), Pack("Zombie_WalkerF", 6, 0.9f, 3f, S), Pack("Zombie_Sprinter", 2, 1.2f, 7f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Sprinter", 3, 1f, 0.5f, F), Pack("Zombie_Walker", 10, 0.55f, 1f, M), Pack("Zombie_Bomber", 2, 3f, 4f, F), Pack("Zombie_Runner", 5, 0.5f, 6f, S)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, M), Pack("Zombie_Brute", 1, 1f, 1f, F), Pack("Zombie_WalkerF", 12, 0.5f, 1.5f, M), Pack("Zombie_Crawler", 4, 1.2f, 3f, S), Pack("Zombie_Sprinter", 3, 1f, 7f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Sprinter", 3, 1f, 0.5f, M), Pack("Zombie_Walker", 14, 0.45f, 1f, M), Pack("Zombie_Brute", 1, 1f, 5f, F), Pack("Zombie_Bomber", 2, 3f, 4f, F), Pack("Zombie_Runner", 6, 0.45f, 8f, M)));
+        // L6 (phir AASAAN, 42): naya rocket - saans lene wala level, tez zombies ka mazaa
+        CreateLevel(6, "Night Runners", "Watch out for the fast ones!", false, 180f, 90, 1.4f, 1.05f, 10,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, F), Pack(W, 6, 0.9f, 1.5f, F), Pack(WF, 3, 1.2f, 3f, S), Pack(SP, 1, 1f, 7f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(SP, 2, 1f, 0.5f, F), Pack(W, 6, 0.9f, 1f, M), Pack(BM, 1, 1f, 4f, F), Pack(RN, 3, 0.5f, 6f, S)),
+            Wave("Final", 2f, 1f, Pack(RN, 3, 0.5f, 0.5f, M), Pack(BR, 1, 1f, 2f, F), Pack(WF, 6, 0.8f, 1.5f, M), Pack(CR, 2, 1.5f, 3f, S), Pack(SP, 2, 1f, 7f, F), Pack(RN, 3, 0.5f, 10f, M)));
 
-        // L7: horde - bohat saare, runners ke rush ke saath
-        CreateLevel(7, "The Horde", "So many of them!", false, 200f, 100, 1.5f, 1.1f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 16, 0.4f, 1.5f, M), Pack("Zombie_WalkerF", 10, 0.55f, 3f, S), Pack("Zombie_Runner", 4, 0.5f, 9f, S)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Runner", 4, 0.5f, 0.5f, M), Pack("Zombie_Crawler", 6, 0.9f, 1f, F), Pack("Zombie_Walker", 14, 0.4f, 1.5f, M), Pack("Zombie_Sprinter", 2, 1.2f, 6f, F)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Brute", 2, 4f, 0f, F), Pack("Zombie_Runner", 4, 0.5f, 1f, S), Pack("Zombie_WalkerF", 14, 0.4f, 1.5f, M), Pack("Zombie_Bomber", 3, 2.5f, 3f, F), Pack("Zombie_Sprinter", 2, 1.2f, 8f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_Walker", 18, 0.35f, 1f, M), Pack("Zombie_WalkerF", 12, 0.4f, 2f, S), Pack("Zombie_Sprinter", 4, 1f, 5f, M), Pack("Zombie_Bomber", 2, 3f, 5f, F)));
+        // L7 (mushkil, 64): horde
+        CreateLevel(7, "The Horde", "So many of them!", false, 195f, 100, 1.6f, 1.1f, 16,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 4, 0.45f, 0.5f, F), Pack(W, 9, 0.6f, 1.5f, M), Pack(WF, 5, 0.8f, 3f, S), Pack(RN, 3, 0.5f, 9f, S)),
+            Wave("Wave 2", 2f, 0.75f, Pack(RN, 3, 0.5f, 0.5f, M), Pack(CR, 4, 1f, 1f, F), Pack(W, 8, 0.6f, 1.5f, M), Pack(SP, 2, 1.2f, 6f, F)),
+            Wave("Final", 2f, 1f, Pack(BR, 1, 1f, 0f, F), Pack(RN, 4, 0.45f, 0.5f, M), Pack(W, 10, 0.55f, 1f, M), Pack(WF, 6, 0.6f, 2f, S), Pack(SP, 3, 1f, 5f, M), Pack(BM, 2, 3f, 5f, F)));
 
-        // L8: brutes aage aage
-        CreateLevel(8, "Heavy Night", "Brutes lead the pack!", false, 210f, 110, 1.55f, 1.12f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Brute", 1, 1f, 0f, F), Pack("Zombie_Runner", 4, 0.5f, 0.5f, F), Pack("Zombie_Walker", 12, 0.5f, 1.5f, M), Pack("Zombie_WalkerF", 8, 0.6f, 3f, S)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Brute", 2, 4f, 0f, F), Pack("Zombie_Sprinter", 3, 1f, 0.5f, M), Pack("Zombie_Bomber", 3, 2.5f, 2f, F), Pack("Zombie_Walker", 12, 0.45f, 1.5f, M)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_Crawler", 6, 0.9f, 1f, S), Pack("Zombie_WalkerF", 14, 0.45f, 1.5f, M), Pack("Zombie_Sprinter", 2, 1.2f, 7f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Brute", 3, 4f, 0f, F), Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_Walker", 16, 0.4f, 1.5f, M), Pack("Zombie_Sprinter", 4, 1f, 5f, M), Pack("Zombie_Bomber", 3, 3f, 3f, F)));
+        // L8 (aur mushkil, 74): brutes aage aage
+        CreateLevel(8, "Heavy Night", "Brutes lead the pack!", false, 205f, 110, 1.7f, 1.12f, 18,
+            Wave("Wave 1", 1f, 0.75f, Pack(BR, 1, 1f, 0f, F), Pack(RN, 4, 0.45f, 0.5f, F), Pack(W, 9, 0.6f, 1.5f, M), Pack(WF, 5, 0.7f, 3f, S)),
+            Wave("Wave 2", 2f, 0.75f, Pack(BR, 2, 4f, 0f, F), Pack(SP, 3, 1f, 0.5f, M), Pack(BM, 2, 2.5f, 2f, F), Pack(W, 8, 0.55f, 1.5f, M)),
+            Wave("Wave 3", 2f, 0.75f, Pack(RN, 4, 0.45f, 0.5f, M), Pack(CR, 4, 0.9f, 1f, S), Pack(WF, 9, 0.55f, 1.5f, M), Pack(SP, 2, 1.2f, 7f, F)),
+            Wave("Final", 2f, 1f, Pack(BR, 2, 4f, 0f, F), Pack(RN, 4, 0.45f, 0.5f, M), Pack(W, 10, 0.5f, 1.5f, M), Pack(SP, 3, 1f, 5f, M), Pack(BM, 2, 3f, 3f, F)));
 
-        // L9: sab kuch ek saath
-        CreateLevel(9, "No Escape", "Everything at once. Hold on!", false, 220f, 130, 1.6f, 1.14f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_Walker", 16, 0.4f, 1.5f, M), Pack("Zombie_WalkerF", 12, 0.5f, 3f, S), Pack("Zombie_Bomber", 2, 3f, 4f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Brute", 2, 4f, 0f, F), Pack("Zombie_Sprinter", 3, 1f, 0.5f, M), Pack("Zombie_Crawler", 6, 0.9f, 1f, S), Pack("Zombie_Walker", 10, 0.45f, 2f, M), Pack("Zombie_Runner", 5, 0.45f, 7f, S)),
-            Wave("Wave 3", 1.5f, 0.6f, Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_WalkerF", 16, 0.4f, 1.5f, M), Pack("Zombie_Bomber", 4, 2.5f, 2f, F), Pack("Zombie_Brute", 1, 1f, 5f, F), Pack("Zombie_Sprinter", 3, 1f, 7f, F)),
-            Wave("Final", 1.5f, 1f, Pack("Zombie_Sprinter", 4, 0.9f, 0.5f, M), Pack("Zombie_Brute", 3, 3.5f, 1f, F), Pack("Zombie_Walker", 18, 0.35f, 1.5f, M), Pack("Zombie_WalkerF", 10, 0.45f, 2.5f, S), Pack("Zombie_Bomber", 3, 3f, 4f, F), Pack("Zombie_Crawler", 5, 1f, 3f, F), Pack("Zombie_Runner", 6, 0.45f, 9f, M)));
+        // L9 (bohat mushkil, 84): sab kuch ek saath
+        CreateLevel(9, "No Escape", "Everything at once. Hold on!", false, 215f, 130, 1.8f, 1.14f, 21,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 5, 0.45f, 0.5f, M), Pack(W, 10, 0.5f, 1.5f, M), Pack(WF, 5, 0.6f, 3f, S), Pack(BM, 2, 3f, 4f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(BR, 2, 4f, 0f, F), Pack(SP, 3, 1f, 0.5f, M), Pack(CR, 4, 0.9f, 1f, S), Pack(W, 7, 0.55f, 2f, M), Pack(RN, 4, 0.45f, 7f, S)),
+            Wave("Wave 3", 2f, 0.75f, Pack(RN, 4, 0.45f, 0.5f, M), Pack(WF, 9, 0.5f, 1.5f, M), Pack(BM, 2, 2.5f, 2f, F), Pack(BR, 1, 1f, 5f, F), Pack(SP, 2, 1f, 7f, F)),
+            Wave("Final", 2f, 1f, Pack(SP, 3, 0.9f, 0.5f, M), Pack(BR, 2, 3.5f, 1f, F), Pack(W, 10, 0.45f, 1.5f, M), Pack(WF, 5, 0.5f, 2.5f, S), Pack(BM, 2, 3f, 4f, F), Pack(RN, 4, 0.45f, 9f, M)));
 
-        // L10: FINAL BOSS
-        CreateLevel(10, "Final Night", "The King of the Dead is here!", true, 250f, 300, 1.7f, 1.15f,
-            Wave("Wave 1", 1f, 0.6f, Pack("Zombie_Runner", 5, 0.45f, 0.5f, M), Pack("Zombie_Walker", 16, 0.4f, 1.5f, M), Pack("Zombie_WalkerF", 12, 0.45f, 3f, S), Pack("Zombie_Crawler", 5, 1f, 4f, F)),
-            Wave("Wave 2", 1.5f, 0.6f, Pack("Zombie_Sprinter", 3, 1f, 0.5f, F), Pack("Zombie_Brute", 2, 4f, 1f, F), Pack("Zombie_Runner", 5, 0.45f, 2f, M), Pack("Zombie_Bomber", 3, 2.5f, 3f, F), Pack("Zombie_Walker", 10, 0.45f, 1.5f, M)),
-            Wave("BOSS", 2f, 1f, Pack("Zombie_Boss", 1, 1f, 0f, F, 1f), Pack("Zombie_Runner", 5, 0.45f, 2f, M), Pack("Zombie_Walker", 14, 0.6f, 3f, M), Pack("Zombie_WalkerF", 10, 0.7f, 6f, S), Pack("Zombie_Brute", 2, 6f, 10f, F), Pack("Zombie_Bomber", 3, 4f, 8f, F), Pack("Zombie_Sprinter", 4, 1.5f, 12f, M)));
+        // L10 (SAB SE MUSHKIL, 76 + boss): FINAL BOSS
+        CreateLevel(10, "Final Night", "The King of the Dead is here!", true, 230f, 300, 1.95f, 1.16f, 24,
+            Wave("Wave 1", 1f, 0.75f, Pack(RN, 5, 0.45f, 0.5f, M), Pack(W, 10, 0.5f, 1.5f, M), Pack(WF, 6, 0.55f, 3f, S), Pack(CR, 4, 1f, 4f, F)),
+            Wave("Wave 2", 2f, 0.75f, Pack(SP, 3, 1f, 0.5f, F), Pack(BR, 2, 4f, 1f, F), Pack(RN, 5, 0.45f, 2f, M), Pack(BM, 3, 2.5f, 3f, F), Pack(W, 8, 0.55f, 1.5f, M)),
+            Wave("BOSS", 2.5f, 1f, Pack("Zombie_Boss", 1, 1f, 0f, F, 1f), Pack(RN, 5, 0.45f, 2f, M), Pack(W, 9, 0.6f, 3f, M), Pack(WF, 6, 0.7f, 6f, S), Pack(BR, 2, 6f, 10f, F), Pack(BM, 2, 4f, 8f, F), Pack(SP, 4, 1.5f, 12f, M)));
     }
-
-    private static void CreateLevel(int number, string title, string subtitle, bool boss, float barricadeHp, int coins, float healthMult, float speedMult, params LevelDataSO.WaveData[] waves)
+    private static void CreateLevel(int number, string title, string subtitle, bool boss, float barricadeHp, int coins, float healthMult, float speedMult, int maxAlive, params LevelDataSO.WaveData[] waves)
     {
         string path = $"{DataDir}/Levels/Level_{number:00}.asset";
         var level = AssetDatabase.LoadAssetAtPath<LevelDataSO>(path);
@@ -993,6 +1072,9 @@ public static partial class ZombieGameBuilder
         level.completionCoins = coins;
         level.enemyHealthMultiplier = healthMult;
         level.enemySpeedMultiplier = speedMult;
+        level.maxAliveOnField = maxAlive;
+        // L3 se aage agli wave 65% marne par (zyada dabao), L1-2 mein 75% (saans lene ka waqt)
+        if (number >= 3) foreach (var w in waves) if (w.waveClearPercentage < 0.99f) w.waveClearPercentage = 0.65f;
         level.waves = waves.ToList();
         EditorUtility.SetDirty(level);
     }
