@@ -182,6 +182,37 @@ public static class PlayTestHelpers
         Debug.Log($"{sb} stuck={stuck}/{total}");
     }
 
+    /// <summary> Kaun se scenes loaded hain + tier + render scale </summary>
+    public static string EnvStatus()
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+            sb.Append(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).name).Append(' ');
+        var rp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+        sb.Append($"| tier={DeviceTier.Current} rp={(rp ? rp.name : "-")} scale={(rp ? rp.renderScale : 0):0.00}");
+        sb.Append($" | envs={Object.FindObjectsByType<LevelEnvironment>(FindObjectsInactive.Include).Length} loading={LevelManager.Instance?.IsLoadingEnvironment}");
+        Debug.Log("[Env] " + sb);
+        return sb.ToString();
+    }
+
+    /// <summary> Sab se qareeb concrete block par knife jaisa hit - hila ya nahi, kitne tukde </summary>
+    public static string ConcreteHit()
+    {
+        var f = typeof(Breakable).GetField("kind", BindingFlags.NonPublic | BindingFlags.Instance);
+        var b = Object.FindObjectsByType<Breakable>(FindObjectsInactive.Exclude)
+            .Where(x => (Breakable.Kind)f.GetValue(x) == Breakable.Kind.Concrete)
+            .OrderBy(x => x.transform.position.z).FirstOrDefault();
+        if (b == null) { Debug.Log("[Concrete] none"); return "none"; }
+        Vector3 p0 = b.transform.position; Quaternion r0 = b.transform.rotation;
+        var col = b.GetComponent<Collider>();
+        Vector3 hp = col.ClosestPoint(Camera.main.transform.position);
+        b.TakeDamage(40f, hp, Vector3.forward * 20f);
+        int debris = Object.FindObjectsByType<DebrisPool>(FindObjectsInactive.Exclude).Length;
+        string s = $"{b.name} moved={(b.transform.position - p0).magnitude:0.000} rot={Quaternion.Angle(r0, b.transform.rotation):0.0} debris={debris} rbOnBlock={(b.GetComponent<Rigidbody>() != null)}";
+        Debug.Log("[Concrete] " + s);
+        return s;
+    }
+
     public static void JumpToLevel12() => JumpTo(12);
     public static void JumpToLevel15() => JumpTo(15);
     public static void JumpToLevel20() => JumpTo(20);

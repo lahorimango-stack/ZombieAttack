@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Grade_7
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 411417160628539397}
---- !u!114 &411417160628539397
+  - {fileID: 6110582507098311143}
+--- !u!114 &6110582507098311143
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}

@@ -883,8 +883,7 @@ public class StandardEnemy : HumanoidEnemy
             nextBloodTime = Time.time + 0.18f;
             globalNextBlood = Time.time + 0.04f;
             Vector3 facing = impulse.sqrMagnitude > 0.01f ? -impulse : Vector3.back;
-            var fx = Instantiate(hitBloodVfx, hitPoint, Quaternion.LookRotation(facing));
-            Destroy(fx, 1.5f);
+            VfxPool.Play(hitBloodVfx, hitPoint, Quaternion.LookRotation(facing), 1.5f); // pool (Instantiate/Destroy nahi)
         }
 
         if (flashRoutine != null) StopCoroutine(flashRoutine);
@@ -926,8 +925,7 @@ public class StandardEnemy : HumanoidEnemy
         if (deathVfx != null && Time.time >= globalNextBlood)
         {
             globalNextBlood = Time.time + 0.07f;
-            var fx = Instantiate(deathVfx, hitPoint, Quaternion.LookRotation(impulse.sqrMagnitude > 0.01f ? impulse : Vector3.forward));
-            Destroy(fx, 3f);
+            VfxPool.Play(deathVfx, hitPoint, Quaternion.LookRotation(impulse.sqrMagnitude > 0.01f ? impulse : Vector3.forward), 3f);
         }
 
         if (animator != null) animator.applyRootMotion = false;

@@ -21,6 +21,7 @@ MonoBehaviour:
   enemySpeedMultiplier: 1.12
   maxAliveOnField: 18
   environmentIndex: 6
+  environmentScene: Env_07
   barricadeHealth: 230
   completionCoins: 170
   waves:
@@ -38,7 +39,7 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 0.9
-      startDelay: 0.0
+      startDelay: 0
     - spawnFrom: 0
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
       variantPrefabs:
@@ -70,7 +71,7 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 1.5
-      startDelay: 5.0
+      startDelay: 5
     - spawnFrom: 4
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
       variantPrefabs:
@@ -81,7 +82,7 @@ MonoBehaviour:
       spawnInterval: 0.3
       startDelay: 6.5
   - waveName: Wave 2
-    delayBeforeWave: 2.0
+    delayBeforeWave: 2
     waveClearPercentage: 0.7
     showBanner: 1
     enemyPacks:
@@ -93,7 +94,7 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 0.9
-      startDelay: 0.0
+      startDelay: 0
     - spawnFrom: 0
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
       variantPrefabs:
@@ -125,13 +126,13 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 1.5
-      startDelay: 5.0
+      startDelay: 5
     - spawnFrom: 0
       enemyPrefab: {fileID: 9196953796044406670, guid: 94d261057d3f15f4db83b5b7b769026e, type: 3}
       variantPrefabs: []
       count: 1
       clusterSpread: 6
-      spawnInterval: 3.0
+      spawnInterval: 3
       startDelay: 6.5
     - spawnFrom: 4
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
@@ -141,10 +142,10 @@ MonoBehaviour:
       count: 5
       clusterSpread: 6
       spawnInterval: 0.3
-      startDelay: 7.0
+      startDelay: 7
   - waveName: Final
-    delayBeforeWave: 2.0
-    waveClearPercentage: 1.0
+    delayBeforeWave: 2
+    waveClearPercentage: 1
     showBanner: 1
     enemyPacks:
     - spawnFrom: 0
@@ -156,7 +157,7 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 0.9
-      startDelay: 0.0
+      startDelay: 0
     - spawnFrom: 0
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}
       variantPrefabs:
@@ -188,13 +189,13 @@ MonoBehaviour:
       count: 2
       clusterSpread: 6
       spawnInterval: 1.5
-      startDelay: 5.0
+      startDelay: 5
     - spawnFrom: 0
       enemyPrefab: {fileID: 9196953796044406670, guid: 94d261057d3f15f4db83b5b7b769026e, type: 3}
       variantPrefabs: []
       count: 1
       clusterSpread: 6
-      spawnInterval: 3.0
+      spawnInterval: 3
       startDelay: 6.5
     - spawnFrom: 4
       enemyPrefab: {fileID: 98893828058848075, guid: 3905594679a81df4b826104ffdbb8e04, type: 3}

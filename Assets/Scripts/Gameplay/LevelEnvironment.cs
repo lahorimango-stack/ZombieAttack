@@ -39,12 +39,22 @@ public class LevelEnvironment : MonoBehaviour
     private float flashUntil;
     private float effIntensity;   // StreetLighting ka boost samet
 
+    /// <summary>
+    /// Mahaul apne alag scene mein hai: chand ki roshni aur baarish main scene mein (scene-to-scene reference
+    /// save nahi hota) - LevelManager yahan de deta hai
+    /// </summary>
+    public static Light SceneLight;
+    public static ParticleSystem SceneRain;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { skyInstances.Clear(); rainBase.Clear(); }
+    private static void ResetStatics() { skyInstances.Clear(); rainBase.Clear(); SceneLight = null; SceneRain = null; }
 
     public void Apply()
     {
         gameObject.SetActive(true);
+        if (mainLight == null) mainLight = SceneLight;
+        if (rain == null) rain = SceneRain;
+        PerformanceManager.TrimVolumes(GetComponentsInChildren<UnityEngine.Rendering.Volume>(true)); // low phone: bloom waghaira band
         RenderSettings.fogColor = fogColor;
         RenderSettings.fogStartDistance = fogStart;
         RenderSettings.fogEndDistance = fogEnd;

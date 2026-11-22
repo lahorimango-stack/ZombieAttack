@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using CandyCoded.HapticFeedback;
 using DG.Tweening;
 
 public class GameManager : MonoBehaviour
@@ -65,27 +64,20 @@ public class GameManager : MonoBehaviour
 
     #region Haptic Trigger Methods
 
-    // Ek frame mein 10 knives lagen to 10 vibration (JNI) calls nahi - phone par atak ki ek wajah
-    private float nextLightHaptic, nextMediumHaptic;
-
+    // GameHaptics: phone ki motor ke hisaab se chhoti/halki vibration + waqfa (low-end par light band)
     public void TriggerLightHaptic()
     {
-        if (!isHapticEnabled || Time.unscaledTime < nextLightHaptic) return;
-        nextLightHaptic = Time.unscaledTime + 0.06f;
-        HapticFeedback.LightFeedback();
+        if (isHapticEnabled) GameHaptics.Play(GameHaptics.Strength.Light);
     }
 
     public void TriggerMediumHaptic()
     {
-        if (!isHapticEnabled || Time.unscaledTime < nextMediumHaptic) return;
-        nextMediumHaptic = Time.unscaledTime + 0.08f;
-        HapticFeedback.MediumFeedback();
+        if (isHapticEnabled) GameHaptics.Play(GameHaptics.Strength.Medium);
     }
 
     public void TriggerHeavyHaptic()
     {
-        if (!isHapticEnabled) return;
-        HapticFeedback.HeavyFeedback();
+        if (isHapticEnabled) GameHaptics.Play(GameHaptics.Strength.Heavy);
     }
 
     public void ToggleHaptics(bool state)

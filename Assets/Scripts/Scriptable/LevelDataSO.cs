@@ -75,6 +75,8 @@ public class LevelDataSO : ScriptableObject
     public int maxAliveOnField = 0;
     [Tooltip("Kaunsa mahaul (0-9). -1 = level number ke hisaab se")]
     public int environmentIndex = -1;
+    [Tooltip("Is level ke mahaul ka scene (Build Settings mein, e.g. 'Env_05') - sirf yahi load hota hai, baqi memory se bahar")]
+    public string environmentScene = "";
 
     [Header("--- 3. Barricade & Rewards ---")]
     public float barricadeHealth = 100f;

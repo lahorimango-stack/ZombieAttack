@@ -94,8 +94,7 @@ public class Barricade : MonoBehaviour
         {
             nextHitVfxTime = Time.time + 0.25f;
             Vector3 p = new Vector3(fromPosition.x, transform.position.y + 0.8f, FrontZ);
-            var fx = Instantiate(hitVfx, p, Quaternion.LookRotation(Vector3.forward));
-            Destroy(fx, 1.5f);
+            VfxPool.Play(hitVfx, p, Quaternion.LookRotation(Vector3.forward), 1.5f);
         }
 
         if (Time.time >= nextHitSoundTime && hitSounds != null && hitSounds.Length > 0)
@@ -114,8 +113,7 @@ public class Barricade : MonoBehaviour
         {
             if (breakVfx != null)
             {
-                var fx = Instantiate(breakVfx, transform.position + Vector3.up, Quaternion.identity);
-                Destroy(fx, 3f);
+                VfxPool.Play(breakVfx, transform.position + Vector3.up, Quaternion.identity, 3f);
             }
             if (breakSound != null) SoundManager.Instance?.PlaySFX(breakSound);
             GameManager.Instance?.WeaponController?.Shake(0.25f, 0.4f);
@@ -139,8 +137,7 @@ public class Barricade : MonoBehaviour
                 piece.SetActive(false);
                 if (breakVfx != null)
                 {
-                    var fx = Instantiate(breakVfx, piece.transform.position, Quaternion.identity);
-                    Destroy(fx, 3f);
+                    VfxPool.Play(breakVfx, piece.transform.position, Quaternion.identity, 3f);
                 }
             }
         }

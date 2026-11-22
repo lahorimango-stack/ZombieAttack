@@ -465,8 +465,7 @@ public class ThrownWeapon : MonoBehaviour
     private static void SpawnVfx(GameObject prefab, Vector3 point, Vector3 normal, float life)
     {
         if (prefab == null) return;
-        GameObject fx = Instantiate(prefab, point, normal.sqrMagnitude > 0.001f ? Quaternion.LookRotation(normal) : Quaternion.identity);
-        Destroy(fx, life);
+        VfxPool.Play(prefab, point, normal.sqrMagnitude > 0.001f ? Quaternion.LookRotation(normal) : Quaternion.identity, life); // pool
     }
 
     private void Finish()

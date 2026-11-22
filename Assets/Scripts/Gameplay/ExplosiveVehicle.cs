@@ -63,7 +63,7 @@ public class ExplosiveVehicle : MonoBehaviour, IDamageable
         if (Time.time >= nextSparkTime)
         {
             nextSparkTime = Time.time + 0.1f;
-            if (hitSparkVfx != null) Destroy(Instantiate(hitSparkVfx, hitPoint, Quaternion.LookRotation(-hitDirection.normalized + Vector3.up * 0.01f)), 1.5f);
+            if (hitSparkVfx != null) VfxPool.Play(hitSparkVfx, hitPoint, Quaternion.LookRotation(-hitDirection.normalized + Vector3.up * 0.01f), 1.5f);
             SoundManager.Instance?.PlayRandomSFX(hitSounds, 0.9f, 1.1f, 0.7f);
             body.DOKill(true);
             body.DOPunchPosition(hitDirection.normalized * 0.06f, 0.2f, 12, 0.5f);

@@ -146,7 +146,7 @@ public class WeaponFormationController : MonoBehaviour
     {
         inputEnabled = state;
         // Level shuru: is weapon ka dhamaka pehle se tayyar (pehle grenade par bhi FPS jhatka nahi)
-        if (state) { var w = GetTargetWeapon(); if (w != null) VfxPool.Prewarm(w.explosionVfx, Mathf.Min(4, w.maxCount)); }
+        if (state) { var w = GetTargetWeapon(); if (w != null) { VfxPool.Prewarm(w.explosionVfx, Mathf.Min(4, w.maxCount)); SpawnPool.Prewarm(w.weaponPrefab, Economy.EffectiveMaxCount(w) + 4); } }
         if (!state)
         {
             if (isDragging)
@@ -255,12 +255,8 @@ public class WeaponFormationController : MonoBehaviour
         WeaponDataSO data = GetTargetWeapon();
         if (data == null || data.weaponPrefab == null) return;
 
-        // Direct Instantiate
-        GameObject weaponObj = Instantiate(
-            data.weaponPrefab,
-            spawnWorldPos,
-            Quaternion.LookRotation(Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized)
-        );
+        // Pool se pehle se bana weapon (draw karte waqt Instantiate ka jhatka nahi)
+        GameObject weaponObj = SpawnPool.Take(data.weaponPrefab, spawnWorldPos, Quaternion.LookRotation(Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized));
 
         ThrownWeapon weapon = weaponObj.GetComponent<ThrownWeapon>();
         if (weapon == null)
@@ -278,9 +274,7 @@ public class WeaponFormationController : MonoBehaviour
 
         if (data.spawnVfx != null)
         {
-            var flash = Instantiate(data.spawnVfx, spawnWorldPos, weaponObj.transform.rotation);
-            flash.transform.localScale = Vector3.one * 0.5f;
-            Destroy(flash, 1f);
+            VfxPool.Play(data.spawnVfx, spawnWorldPos, weaponObj.transform.rotation, 1f, 0.5f, false); // pool
         }
 
         // Audio & Haptic: har weapon ki apni awaaz, formation barhne par pitch upar

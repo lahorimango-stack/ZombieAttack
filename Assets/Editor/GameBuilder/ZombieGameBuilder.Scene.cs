@@ -32,7 +32,9 @@ public static partial class ZombieGameBuilder
     {
         // Generated scene (ZombieGame) har dafa naye siray se banta hai - uske liye "save karein?" ka sawal nahi
         // (automation mein ye dialog editor ko rok deta tha). Kisi doosre scene par ho to poochho.
-        bool onGeneratedScene = SceneManager.GetActiveScene().path == ScenePath;
+        // Untitled (adhoora, pichle build ka) bhi isi mein - us ka save poochna bekaar tha aur automation ruk jati thi
+        string activePath = SceneManager.GetActiveScene().path;
+        bool onGeneratedScene = activePath == ScenePath || string.IsNullOrEmpty(activePath);
         if (!Application.isBatchMode && !onGeneratedScene && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             return;
 
@@ -46,10 +48,16 @@ public static partial class ZombieGameBuilder
         Barricade barricade = BuildBarricade();
         BuildManagers(cam, barricade);
         BuildUI();
+        BuildPerformanceManager();
 
+        // Har level ka mahaul apne scene mein (sirf current level memory mein). Unity untitled scene ke saath
+        // additive scene nahi banne deta - pehle main save, phir mahaul nikaal kar dobara save
         EnsureFolder("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, ScenePath);
-        AddSceneToBuildSettings();
+        var envScenes = SplitEnvironmentScenes(scene);
+        EditorSceneManager.SaveScene(scene, ScenePath);
+        AddScenesToBuildSettings(envScenes);
+        ApplyMobilePlayerSettings();
         Debug.Log($"[Builder] Scene saved: {ScenePath}");
     }
 
@@ -887,9 +895,11 @@ public static partial class ZombieGameBuilder
         string n = go.name.ToLower();
         Breakable.Kind kind; Breakable.Mode mode; int hits; Vector3 size; int count;
         if (n.Contains("barricada") || n.Contains("crate")) { kind = Breakable.Kind.Wood; mode = Breakable.Mode.Shatter; hits = n.Contains("crate") ? 2 : 1; size = new Vector3(0.5f, 0.05f, 0.13f); count = 10; }
-        else if (n.Contains("jersey")) { kind = Breakable.Kind.Concrete; mode = Breakable.Mode.Shatter; hits = 3; size = new Vector3(0.22f, 0.18f, 0.2f); count = 12; }
+        // Concrete (jersey + "Barrier Big" cement blocks): bhaari - hilte/udte nahi, tukde ho kar girte hain.
+        // (Barrier Big pehle Metal+Physics tha: knife lagte hi poora block ud jata = foam jaisa)
+        else if (n.Contains("jersey") || n.Contains("barrier big")) { kind = Breakable.Kind.Concrete; mode = Breakable.Mode.Shatter; hits = 3; size = new Vector3(0.22f, 0.18f, 0.2f); count = 14; }
         else if (n.Contains("tyre")) { kind = Breakable.Kind.Rubber; mode = Breakable.Mode.Physics; hits = 1; size = Vector3.one; count = 0; }
-        else if (n.Contains("sign") || n.Contains("barrier big")) { kind = Breakable.Kind.Metal; mode = Breakable.Mode.Physics; hits = 2; size = Vector3.one; count = 0; }
+        else if (n.Contains("sign")) { kind = Breakable.Kind.Metal; mode = Breakable.Mode.Physics; hits = 2; size = Vector3.one; count = 0; }
         else return;
 
         const string B = "Assets/Audio/Game/Break";
@@ -910,8 +920,9 @@ public static partial class ZombieGameBuilder
                 Set(br, "breakVfx", Vfx("VFX_ImpactWood"));
                 break;
             case Breakable.Kind.Concrete:
-                Set(br, "hitSounds", ClipsStartingWith(B, "THUD_Bright"));
-                Set(br, "breakSounds", ClipsStartingWith(B, "DEMOLISH_Short"));
+                // Bhaari pathar: dabi hui thump + darar (THUD_Bright khokhla / thermocol jaisa lagta tha)
+                Set(br, "hitSounds", ClipsStartingWith(B, "BREAK_Crack").Concat(ClipsStartingWith("Assets/Audio/Game/Weapons/Pro", "THUD_Dark")).ToArray());
+                Set(br, "breakSounds", ClipsStartingWith(B, "DEMOLISH_Short").Concat(ClipsStartingWith("Assets/Audio/Game/Cinematic", "THUD_Deep")).ToArray());
                 Set(br, "breakVfx", Vfx("VFX_ImpactStone"));
                 break;
             case Breakable.Kind.Rubber:

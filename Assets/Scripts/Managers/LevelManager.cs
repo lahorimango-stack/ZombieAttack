@@ -47,8 +47,17 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private int crawlerStandUpWhenLeft = 3;
 
     [Header("--- 3b. Per-Level Environment ---")]
-    [Tooltip("Level 1..N ke props groups (order mein). Sirf current level wala on hoga")]
+    [Tooltip("Purana tareeqa (sab mahaul isi scene mein). Khali = har level ka mahaul apne scene se (LevelDataSO.environmentScene)")]
     [SerializeField] private List<LevelEnvironment> levelEnvironments = new List<LevelEnvironment>();
+    [Tooltip("Main scene ki chand wali roshni (mahaul ke scene isay use karte hain)")]
+    [SerializeField] private Light sceneMainLight;
+    [Tooltip("Camera ke saath wali baarish")]
+    [SerializeField] private ParticleSystem sceneRain;
+
+    private EnvironmentStreamer streamer;
+    private bool envReady;
+    /// <summary> Level ka mahaul abhi load ho raha hai </summary>
+    public bool IsLoadingEnvironment => !envReady;
 
     [Header("--- 4. LAG-FREE SPAWNING SETTINGS ---")]
     [Tooltip("Lag khatam karne ke liye har zombie ke darmiyan micro-delay (0.03s - 0.05s). Is se 60 FPS smooth rahega")]
@@ -87,7 +96,13 @@ public class LevelManager : MonoBehaviour
         if (Instance == null)
             Instance = this;
         else
+        {
             Destroy(gameObject);
+            return;
+        }
+        LevelEnvironment.SceneLight = sceneMainLight;
+        LevelEnvironment.SceneRain = sceneRain;
+        streamer = gameObject.AddComponent<EnvironmentStreamer>();
     }
 
     void Start()
@@ -136,7 +151,7 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 1f;
 
         Barricade.Instance?.ResetHealth(levels.Count > 0 && levels[actualResourceLevelNumber - 1] != null ? levels[actualResourceLevelNumber - 1].barricadeHealth : 100f);
-        ApplyEnvironment(EnvIndexFor(actualResourceLevelNumber));
+        ApplyEnvironment(actualResourceLevelNumber);
         UIManager.Instance?.ShowHome(currentDisplayLevelNumber);
         SoundManager.Instance?.PlayMenuMusic();
     }
@@ -182,7 +197,8 @@ public class LevelManager : MonoBehaviour
 
         // Armor upgrade: player ki health zyada
         Barricade.Instance?.ResetHealth(currentActiveLevelData.barricadeHealth * Economy.ArmorMultiplier);
-        ApplyEnvironment(EnvIndexFor(actualResourceLevelNumber));
+        ApplyEnvironment(actualResourceLevelNumber);
+        PrewarmLevelEnemies(currentActiveLevelData);
         GameManager.Instance?.WeaponController?.ClearPendingWeapons();
 
         UIManager.Instance?.ShowGameplayHUD(currentDisplayLevelNumber, currentActiveLevelData);
@@ -205,6 +221,9 @@ public class LevelManager : MonoBehaviour
     private IEnumerator SpawnWavesRoutine()
     {
         int waveCount = currentActiveLevelData.waves.Count;
+
+        // Mahaul (blockade, containers) load ho jaye, phir zombies (warna hawa mein se nikalte)
+        while (!envReady && CurrentState == GameState.Playing) yield return null;
 
         // Tutorial chal raha ho to zombies ruk kar aayen (player pehle draw/throw seekh le)
         while (TutorialController.Instance != null && TutorialController.Instance.Blocking && CurrentState == GameState.Playing)
@@ -302,7 +321,8 @@ public class LevelManager : MonoBehaviour
             }
             spawnPos.z = Mathf.Max(spawnPos.z, minSpawnZ);
 
-            GameObject enemyObj = Instantiate(PickVariant(pack), spawnPos, spawnRot);
+            // Pool se pehle se bana zombie (background mein bana tha) - spawn par Instantiate ka jhatka nahi
+            GameObject enemyObj = SpawnPool.Take(PickVariant(pack), spawnPos, spawnRot);
 
             HumanoidEnemy enemyScript = enemyObj.GetComponent<HumanoidEnemy>();
             if (enemyScript != null)
@@ -492,7 +512,52 @@ public class LevelManager : MonoBehaviour
         return levelNumber;
     }
 
+    /// <summary>
+    /// Level ke zombies pehle se tayyar (background thread par): har kism ke utne jitne ek waqt mein field par
+    /// aa sakte hain. Doosre levels ke soye zombies memory se bahar.
+    /// </summary>
+    private void PrewarmLevelEnemies(LevelDataSO data)
+    {
+        var counts = new Dictionary<GameObject, int>();
+        foreach (var wave in data.waves)
+            foreach (var pack in wave.enemyPacks)
+            {
+                if (pack.enemyPrefab == null) continue;
+                int variants = 1 + (pack.variantPrefabs != null ? pack.variantPrefabs.Count : 0);
+                int each = Mathf.CeilToInt(pack.count / (float)variants);
+                Add(pack.enemyPrefab, each);
+                if (pack.variantPrefabs != null) foreach (var v in pack.variantPrefabs) if (v != null) Add(v, each);
+            }
+
+        int cap = Mathf.Max(4, Mathf.CeilToInt(AliveCap * (DeviceTier.IsLow ? 0.35f : 0.5f)));
+        SpawnPool.RetainOnly(new HashSet<GameObject>(counts.Keys));
+        foreach (var kv in counts) SpawnPool.Prewarm(kv.Key, Mathf.Min(kv.Value, cap));
+
+        void Add(GameObject p, int n) { counts.TryGetValue(p, out int c); counts[p] = c + n; }
+    }
+
+    /// <summary>
+    /// Level ka mahaul: apne scene se (LevelDataSO.environmentScene) - sirf wahi memory mein.
+    /// Scene na mile to purana tareeqa (isi scene ke groups).
+    /// </summary>
     private void ApplyEnvironment(int levelNumber)
+    {
+        LevelDataSO data = levelNumber >= 1 && levelNumber <= levels.Count ? levels[levelNumber - 1] : null;
+        if (data != null && !string.IsNullOrEmpty(data.environmentScene) && streamer != null)
+        {
+            envReady = false;
+            streamer.Request(data.environmentScene, env =>
+            {
+                if (env != null) env.Apply();
+                envReady = true;
+            });
+            return;
+        }
+        envReady = true;
+        ApplyLegacyEnvironment(EnvIndexFor(levelNumber));
+    }
+
+    private void ApplyLegacyEnvironment(int levelNumber)
     {
         if (levelEnvironments == null || levelEnvironments.Count == 0) return;
         int idx = Mathf.Clamp(levelNumber - 1, 0, levelEnvironments.Count - 1);

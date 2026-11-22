@@ -31,21 +31,30 @@ public class VfxPool : MonoBehaviour
     /// Dhamaka chalao. Isi jagah (1.4m) par abhi abhi (0.15s) wahi VFX chala ho to false (4 grenade = 1 bara dhamaka,
     /// 4 alag nahi - dekhne mein wahi, kharcha chauthai).
     /// </summary>
-    public static bool Play(GameObject prefab, Vector3 pos, Quaternion rot, float life)
+    public static bool Play(GameObject prefab, Vector3 pos, Quaternion rot, float life) => Play(prefab, pos, rot, life, 1f, true);
+
+    /// <param name="scale">Prefab ke scale ka multiplier</param>
+    /// <param name="merge">false = qareeb chala ho tab bhi chalao (weapon spawn flash)</param>
+    public static bool Play(GameObject prefab, Vector3 pos, Quaternion rot, float life, float scale, bool merge)
     {
         if (prefab == null) return false;
         float now = Time.time;
-        for (int i = recent.Count - 1; i >= 0; i--)
+        if (merge)
         {
-            if (now - recent[i].time > 0.15f) { recent.RemoveAt(i); continue; }
-            if (recent[i].prefab == prefab && (recent[i].pos - pos).sqrMagnitude < 1.4f * 1.4f) return false;
+            for (int i = recent.Count - 1; i >= 0; i--)
+            {
+                if (now - recent[i].time > 0.15f) { recent.RemoveAt(i); continue; }
+                if (recent[i].prefab == prefab && (recent[i].pos - pos).sqrMagnitude < 1.4f * 1.4f) return false;
+            }
+            recent.Add((prefab, pos, now));
         }
-        recent.Add((prefab, pos, now));
 
         var q = GetQueue(prefab);
-        VfxPool v = q.Count > 0 ? q.Dequeue() : Create(prefab);
+        VfxPool v = null;
+        while (q.Count > 0 && v == null) v = q.Dequeue();   // scene badalne par toota object chhor do
         if (v == null) v = Create(prefab);
         v.transform.SetPositionAndRotation(pos, rot);
+        v.transform.localScale = prefab.transform.localScale * scale;
         v.gameObject.SetActive(true);
         foreach (var ps in v.systems) { ps.Clear(true); ps.Play(true); }
         v.returnAt = Time.time + life;
