@@ -38,6 +38,7 @@ MonoBehaviour:
   stickOnHit: 1
   stuckVisualEuler: {x: 25, y: 0, z: 0}
   stuckDepth: 0.02
+  stuckScale: 0.7
   hitRadius: 0.3
   damage: 65
   pierceCount: 1

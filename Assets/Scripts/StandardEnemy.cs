@@ -85,6 +85,38 @@ public class StandardEnemy : HumanoidEnemy
     [Tooltip("Crawler: aakhir mein bach jaye to khada ho kar in states mein daude (khali = sirf hamle par khada ho)")]
     [SerializeField] protected string[] standUpMoveStates = new string[0];
 
+    [Header("--- Attack Animation ---")]
+    [Tooltip("True = attack clip ek dafa shuru ho kar loop mein chalta rahe (dog ka lagataar kaatna). False = har hamle par dobara shuru")]
+    [SerializeField] protected bool loopAttackAnimation = false;
+
+    [Header("--- Pounce (dogs) ---")]
+    [Tooltip("Player ke qareeb aa kar chhalaang wali state (e.g. 'Jump1'). Khali = chhalaang nahi")]
+    [SerializeField] protected string lungeState = "";
+    [Tooltip("Player line se kitne meter pehle chhalaang lagaye")]
+    [SerializeField] protected float lungeTriggerDistance = 3.2f;
+    [SerializeField] protected float lungeSpeed = 9f;
+    [SerializeField] protected float lungeDuration = 0.42f;
+    [Tooltip("Chhalaang ke baad barricade par girne ka jhatka (damage)")]
+    [SerializeField] protected float lungeImpactDamage = 4f;
+    [SerializeField] protected AudioClip[] lungeSounds;
+
+    [Header("--- Prowl (dogs) ---")]
+    [Tooltip("Beech raste mein ruk kar ghoorne/ghurrane wali state (e.g. 'Idle1'). Khali = kabhi nahi rukta")]
+    [SerializeField] protected string prowlState = "";
+    [Range(0f, 1f)][SerializeField] protected float prowlChance = 0f;
+    [Tooltip("Player line se is doori ki range mein ruk sakta hai")]
+    [SerializeField] protected Vector2 prowlZone = new Vector2(7f, 13f);
+    [SerializeField] protected Vector2 prowlDuration = new Vector2(0.6f, 1.1f);
+    [Tooltip("Zig-zag daud (shikari kutta) - 0 = band")]
+    [SerializeField] protected float zigzagAmplitude = 0f;
+    [SerializeField] protected float zigzagFrequency = 1.3f;
+
+    [Header("--- Obstacle Steering ---")]
+    [Tooltip("Aage itne meter tak gaadi/container dekh kar pehle se side mein mude (kone mein phansna band)")]
+    [SerializeField] protected float avoidLookAhead = 3.2f;
+    [Tooltip("Root motion zombies: qadam ki raftar mein qudrati utaar chadhao (ladkhadahat)")]
+    [SerializeField] protected float rootLurch = 0.18f;
+
     [Header("--- 3D Audio ---")]
     [SerializeField] protected AudioClip[] hitSounds;
     [SerializeField] protected AudioClip[] groanSounds;
@@ -158,6 +190,24 @@ public class StandardEnemy : HumanoidEnemy
     private float nextBloodTime;
     private static float globalNextBlood;
 
+    // Pounce / prowl / steering state
+    private bool hasLunged;
+    private float lungeUntil = -1f;
+    private bool willProwl;
+    private bool hasProwled;
+    private float prowlAtDist;
+    private float prowlUntil = -1f;
+    private bool attackAnimPlaying;
+    private int avoidSide;
+    private bool avoiding;
+    private float stuckCheckTime;
+    private float stuckRefZ;
+    private int stuckCount;
+    private float unstickUntil = -1f;
+
+    private bool IsLunging => lungeUntil > localClock;
+    private bool IsProwling => prowlUntil > localClock;
+
     /// <summary> Zinda zombies (camera pan lock inhe dekhta hai) </summary>
     public static readonly List<StandardEnemy> Active = new List<StandardEnemy>();
 
@@ -185,6 +235,8 @@ public class StandardEnemy : HumanoidEnemy
         swayPhase = Random.Range(0f, 10f);
         stopZOffset = Random.Range(0f, 1.2f); // qataaron mein khade hon, ek doosre mein nahi
         willChase = Random.value < chaseChance;
+        willProwl = !string.IsNullOrEmpty(prowlState) && Random.value < prowlChance;
+        prowlAtDist = Random.Range(prowlZone.x, prowlZone.y);
         bomber = GetComponent<BomberZombie>();
 
         if (animator != null)
@@ -201,6 +253,56 @@ public class StandardEnemy : HumanoidEnemy
 
         SetupMovementAndAnimationSpeed();
         nextGroanTime = Time.time + Random.Range(minGroanInterval, maxGroanInterval);
+        stuckRefZ = transform.position.z;
+        stuckCheckTime = 1.5f;
+    }
+
+    /// <summary> Dog: aakhri meters mein barricade par chhalaang </summary>
+    private void StartLunge()
+    {
+        hasLunged = true;
+        if (!CrossFadeSafe(lungeState, 0.08f, 0f)) return;
+        lungeUntil = localClock + lungeDuration;
+        prowlUntil = -1f;
+        if (lungeSounds != null && lungeSounds.Length > 0)
+            Play3DSound(lungeSounds[Random.Range(0, lungeSounds.Length)]);
+    }
+
+    /// <summary> Chhalaang barricade par giri: jhatka (screen hile) + foran kaatna shuru </summary>
+    private void OnLungeLanded()
+    {
+        if (bomber != null || IsDead) return;
+        if (lungeImpactDamage > 0f && PlayerView.IsOnScreen(ChestPoint))
+            Barricade.Instance?.TakeDamage(lungeImpactDamage, transform.position);
+        nextAttackTime = localClock + 0.3f;
+    }
+
+    /// <summary>
+    /// Har 1s: agar zombie aage nahi barha (kone / do rukawaton ke beech phansa) to thori der zor se side mein nikle;
+    /// do dafa phir bhi phansa to doosri taraf try kare.
+    /// </summary>
+    private void UpdateStuck()
+    {
+        if (isAttacking || enteringFromSide || damageEffectPlaying || IsProwling || IsLunging || isKnockedBack || standingUp)
+        {
+            stuckRefZ = transform.position.z;
+            stuckCheckTime = localClock + 1f;
+            return;
+        }
+        if (localClock < stuckCheckTime) return;
+
+        float progressed = stuckRefZ - transform.position.z;
+        if (progressed < 0.2f)
+        {
+            stuckCount++;
+            if (avoidSide == 0) avoidSide = transform.position.x > 0f ? -1 : 1;
+            else if (stuckCount >= 2) { avoidSide = -avoidSide; stuckCount = 0; }
+            unstickUntil = localClock + 0.9f;
+        }
+        else stuckCount = 0;
+
+        stuckRefZ = transform.position.z;
+        stuckCheckTime = localClock + 1f;
     }
 
     void OnEnable()
@@ -297,9 +399,16 @@ public class StandardEnemy : HumanoidEnemy
 
         // Slow-mo: weapon draw karte waqt zombie ka sab kuch (animation, qadam, hamla) dheema
         float timeScale = EnemyTime.Scale;
-        if (animator != null) animator.speed = baseAnimSpeed * timeScale;
         float dt = Time.deltaTime * timeScale;
         localClock += dt;
+        if (animator != null)
+        {
+            // Root motion zombies: qadam kabhi tez kabhi dheema (sab ek hi raftar ke robot nahi lagte)
+            float lurch = 1f;
+            if (useRootMotion && !isAttacking && !damageEffectPlaying && rootLurch > 0f)
+                lurch = 1f + (Mathf.PerlinNoise(swayPhase * 3.1f, localClock * 0.7f) - 0.5f) * 2f * rootLurch;
+            animator.speed = baseAnimSpeed * timeScale * lurch;
+        }
 
         float stopZ = Barricade.Instance != null ? Barricade.Instance.FrontZ + attackStopDistance + stopZOffset : float.MinValue;
         float distToLine = transform.position.z - stopZ;
@@ -332,13 +441,23 @@ public class StandardEnemy : HumanoidEnemy
             if (distToLine > 0.5f)
             {
                 isAttacking = false;
+                attackAnimPlaying = false;
                 if (!damageEffectPlaying) CrossFadeSafe(CurrentMoveState, 0.2f);
             }
             else if (!damageEffectPlaying && localClock >= nextAttackTime)
             {
                 nextAttackTime = localClock + attackInterval;
-                CrossFadeSafe(currentAttackState, 0.15f);
-                pendingHitTimer = 0.45f / Mathf.Max(baseAnimSpeed, 0.1f);
+                if (loopAttackAnimation)
+                {
+                    // Looping attack (dog): clip ek dafa shuru, phir chalta rahe - har bite par jhatke se restart nahi
+                    if (!attackAnimPlaying) attackAnimPlaying = CrossFadeSafe(currentAttackState, 0.12f);
+                    pendingHitTimer = 0.2f / Mathf.Max(baseAnimSpeed, 0.1f);
+                }
+                else
+                {
+                    CrossFadeSafe(currentAttackState, 0.15f);
+                    pendingHitTimer = 0.45f / Mathf.Max(baseAnimSpeed, 0.1f);
+                }
             }
 
             // Hamla karte hue bhi ek doosre ke andar na ghusein - side mein khiskein
@@ -358,7 +477,50 @@ public class StandardEnemy : HumanoidEnemy
         {
             if (distToLine <= 0f && !enteringFromSide)
             {
+                bool wasLunging = IsLunging;
+                lungeUntil = -1f;
                 StartAttacking();
+                if (wasLunging) OnLungeLanded();
+            }
+            else if (IsLunging)
+            {
+                // Chhalaang: seedha player ki taraf tezi se (beech screen mein)
+                float x = transform.position.x;
+                float vh = Mathf.Min(attackViewHalfWidth, VisibleHalfWidthAt(transform.position.z));
+                float lat = (Mathf.Clamp(x, -vh, vh) - x) * 4f;
+                Vector3 v = new Vector3(lat, 0f, -lungeSpeed);
+                transform.position += v * dt;
+                FaceDirection(v, dt * 2f);
+                // Chhalaang khatam par line tak nahi pahuncha (hit/slow-mo): wapas daud
+                if (lungeUntil - localClock < dt * 1.5f) CrossFadeSafe(CurrentMoveState, 0.15f);
+            }
+            else if (IsProwling)
+            {
+                // Ruk kar ghoorna + ghurrana (khatre ka ishara), phir achanak daud
+                FaceDirection(new Vector3(-transform.position.x * 0.3f, 0f, -1f), dt);
+                if (prowlUntil - localClock < dt * 1.5f)
+                {
+                    prowlUntil = -1f;
+                    CrossFadeSafe(CurrentMoveState, 0.15f);
+                    if (emergeSounds != null && emergeSounds.Length > 0)
+                        Play3DSound(emergeSounds[Random.Range(0, emergeSounds.Length)]);
+                }
+            }
+            else if (!hasLunged && !string.IsNullOrEmpty(lungeState) && !enteringFromSide && !damageEffectPlaying
+                     && distToLine < lungeTriggerDistance && distToLine > 0.6f && bomber == null)
+            {
+                StartLunge();
+            }
+            else if (willProwl && !hasProwled && !enteringFromSide && !damageEffectPlaying
+                     && distToLine < prowlAtDist && distToLine > lungeTriggerDistance + 2f)
+            {
+                hasProwled = true;
+                if (CrossFadeSafe(prowlState, 0.2f))
+                {
+                    prowlUntil = localClock + Random.Range(prowlDuration.x, prowlDuration.y);
+                    if (groanSounds != null && groanSounds.Length > 0)
+                        Play3DSound(groanSounds[Random.Range(0, groanSounds.Length)]);
+                }
             }
             else
             {
@@ -372,7 +534,8 @@ public class StandardEnemy : HumanoidEnemy
                 float targetLateral;
                 if (enteringFromSide)
                 {
-                    targetLateral = Mathf.Clamp((sideTargetX - transform.position.x) * 1.5f, -3f, 3f);
+                    // Chhupi jagah se qudrati qadmon mein nikle (pehle 3 m/s side mein phisalta tha - rubber jaisa)
+                    targetLateral = Mathf.Clamp((sideTargetX - transform.position.x) * 1.2f, -1.8f, 1.8f);
                     // Pehle poora default camera view (ya blockade ke gap) ke andar aao, phir hi player ki taraf barho
                     float entryHalf = sideEntryHalf > 0f ? sideEntryHalf : Mathf.Min(maxX, VisibleHalfWidthAt(transform.position.z)) - 0.2f;
                     if (Mathf.Abs(transform.position.x) <= entryHalf || localClock > sideEntryEndTime)
@@ -395,12 +558,33 @@ public class StandardEnemy : HumanoidEnemy
                         float vh = Mathf.Min(attackViewHalfWidth, VisibleHalfWidthAt(Barricade.Instance != null ? Barricade.Instance.FrontZ + attackStopDistance : transform.position.z));
                         targetLateral += (Mathf.Clamp(x, -vh, vh) - x) * 2.5f;
                     }
+
+                    // Shikari zig-zag (dog): nishana lagana mushkil, dekhne mein zinda
+                    if (zigzagAmplitude > 0f && distToLine > lungeTriggerDistance)
+                        targetLateral += Mathf.Sin((localClock + swayPhase) * zigzagFrequency * Mathf.PI * 2f) * zigzagAmplitude;
+
+                    // Rukawat pehle se dekh kar mudna (baad mein dhakka khaa kar kone mein phansne se behtar)
+                    avoiding = false;
+                    if (transform.position.z < gapZ - 0.8f)
+                    {
+                        float laneHalf = Mathf.Min(maxX, VisibleHalfWidthAt(transform.position.z));
+                        if (ZombieObstacles.TryAvoid(transform.position, BodyMargin * 0.75f, avoidLookAhead, laneHalf, ref avoidSide, out float avoidX))
+                        {
+                            avoiding = true;
+                            targetLateral = Mathf.Clamp((avoidX - transform.position.x) * 3f, -3.5f, 3.5f) + cachedSeparation * separationStrength * 0.3f;
+                        }
+                    }
+
+                    // Phir bhi phans gaya: thori der zor se ek taraf nikal jao
+                    if (unstickUntil > localClock)
+                        targetLateral = (avoidSide == 0 ? 1 : avoidSide) * 3f;
                 }
-                lateralVelocity = Mathf.Lerp(lateralVelocity, targetLateral, dt * 4f);
+                lateralVelocity = Mathf.Lerp(lateralVelocity, targetLateral, dt * (avoiding || unstickUntil > localClock ? 7f : 4f));
+                UpdateStuck();
 
                 float forwardSpeed = useRootMotion && animator != null ? Mathf.Max(animator.velocity.magnitude, 0.5f) : actualMoveSpeed;
                 // Gali se aate hue pehle side mein chal kar view/lane mein aao (aage bilkul na badho)
-                if (enteringFromSide) forwardSpeed *= 0.04f;
+                if (enteringFromSide) forwardSpeed *= 0.22f;   // halka aage bhi - tircha (arc) raasta, seedha side-slide nahi
                 steerDirection = new Vector3(lateralVelocity, 0f, -forwardSpeed).normalized;
 
                 if (!useRootMotion && !damageEffectPlaying)
@@ -408,6 +592,8 @@ public class StandardEnemy : HumanoidEnemy
                     float lurch = 1f + (Mathf.PerlinNoise(swayPhase, Time.time * 0.9f) - 0.5f) * 2f * lurchAmount;
                     float speed = (isChasing ? chaseSpeed : actualMoveSpeed) * Mathf.Max(0.25f, lurch);
                     if (cachedBlocked) speed *= 0.25f;
+                    if (avoiding) speed *= 0.65f;
+                    if (enteringFromSide) speed *= 0.22f;
                     transform.position += new Vector3(lateralVelocity, 0f, -speed) * dt;
                 }
 
@@ -420,7 +606,8 @@ public class StandardEnemy : HumanoidEnemy
         {
             Vector3 pos = transform.position;
             // Blockade ke gap se guzarte hue sirf gap ki chaurai mein (container ke andar se nahi)
-            float half = pos.z > gapZ - 0.6f ? Mathf.Min(gapHalfWidth, maxX) : maxX;
+            // Gap mein jism ki chaurai bhi ginein - warna aadha zombie deewar ke andar dikhta tha
+            float half = pos.z > gapZ - 0.6f ? Mathf.Min(Mathf.Max(0.15f, gapHalfWidth - BodyMargin * 0.6f), maxX) : maxX;
             // Player ke paas: lane dheere dheere tang - hamla hamesha camera ke beech se (drag limit ke andar)
             if (Barricade.Instance != null)
             {
@@ -429,7 +616,11 @@ public class StandardEnemy : HumanoidEnemy
             }
             // Har phone (patli/chaudi screen) par zombie camera ki asal chaurai ke andar rahe
             half = Mathf.Min(half, VisibleHalfWidthAt(pos.z));
-            pos.x = Mathf.Clamp(pos.x, Mathf.Max(minX, -half), half);
+            float clampedX = Mathf.Clamp(pos.x, Mathf.Max(minX, -half), half);
+            // Had par ruka hua zombie bahar ki taraf raftar jama na kare - had khulte hi "rubber" ki tarah side mein
+            // uchhalta tha. Bahar wali lateral raftar khatam.
+            if (clampedX != pos.x && Mathf.Sign(lateralVelocity) == Mathf.Sign(pos.x - clampedX)) lateralVelocity = 0f;
+            pos.x = clampedX;
             transform.position = pos;
         }
 
@@ -445,7 +636,13 @@ public class StandardEnemy : HumanoidEnemy
                 p.x = Mathf.Clamp(p.x, -vh, vh);
                 transform.position = p;
                 enteringFromSide = false;
-                if (!isAttacking) StartAttacking();
+                if (!isAttacking)
+                {
+                    bool wasLunging = IsLunging;
+                    lungeUntil = -1f;
+                    StartAttacking();
+                    if (wasLunging) OnLungeLanded();
+                }
             }
         }
 
@@ -453,7 +650,7 @@ public class StandardEnemy : HumanoidEnemy
         // (Blockade ke gap ke andar nahi - wahan gap ki chaurai pehle se had lagati hai; warna container ka bara
         //  collider gap mein aa kar zombie ko peeche dhakelta tha aur woh kinare par phans jata tha)
         if (!enteringFromSide && transform.position.z < gapZ - 0.8f)
-            transform.position = ZombieObstacles.Resolve(transform.position, BodyMargin * 0.75f);
+            transform.position = ZombieObstacles.Resolve(transform.position, BodyMargin * 0.75f, Mathf.Min(maxX, VisibleHalfWidthAt(transform.position.z)));
 
         HandleGroanSounds();
 
@@ -472,6 +669,8 @@ public class StandardEnemy : HumanoidEnemy
         float forward = Vector3.Dot(flat, transform.forward);
         if (isAttacking) forward = Mathf.Min(forward, 0f) * 0.3f;
         if (cachedBlocked && forward > 0f) forward *= 0.35f;
+        // Cover se nikalte hue tez daud nahi - aram se bahar aao (runner side mein "sprint" karta lagta tha)
+        if (enteringFromSide && forward > 0f) forward *= 0.65f;
 
         transform.position += steerDirection * forward;
     }
@@ -558,6 +757,7 @@ public class StandardEnemy : HumanoidEnemy
         }
 
         isAttacking = true;
+        attackAnimPlaying = false;
         nextAttackTime = localClock + Random.Range(0.1f, 0.4f);
 
         // Crawler: player ke paas pahunch kar pehle khada ho, phir hamla
@@ -695,9 +895,10 @@ public class StandardEnemy : HumanoidEnemy
         {
             Die(hitPoint, impulse);
         }
-        // 2. Hit Reaction
-        else if (Random.value <= hitReactionChance && !isAttacking)
+        // 2. Hit Reaction (chhalaang ke beech hawa mein nahi)
+        else if (Random.value <= hitReactionChance && !isAttacking && !IsLunging)
         {
+            prowlUntil = -1f;
             if (damageEffect != null) StopCoroutine(damageEffect);
             damageEffect = StartCoroutine(DamageEffect());
         }
@@ -827,6 +1028,7 @@ public class StandardEnemy : HumanoidEnemy
                     // Maar khaya zombie gussay mein aa sakta hai
                     if (!isChasing && willChase) isChasing = true;
                     CrossFadeSafe(isAttacking ? currentAttackState : CurrentMoveState, 0.35f);
+                    attackAnimPlaying = isAttacking;
                 }
             }
             damageEffectPlaying = false;
@@ -856,6 +1058,7 @@ public class StandardEnemy : HumanoidEnemy
         {
             if (!isChasing && willChase) isChasing = true;
             CrossFadeSafe(isAttacking ? currentAttackState : CurrentMoveState, 0.15f);
+            attackAnimPlaying = isAttacking;
         }
 
         damageEffectPlaying = false;
@@ -882,6 +1085,11 @@ public class StandardEnemy : HumanoidEnemy
         isChasing = false;
         knockbackTimer = 0f;
         pendingHitTimer = -1f;
+        hasLunged = hasProwled = attackAnimPlaying = false;
+        lungeUntil = prowlUntil = unstickUntil = -1f;
+        avoidSide = stuckCount = 0;
+        stuckRefZ = transform.position.z;
+        stuckCheckTime = localClock + 1.5f;
         SetupMovementAndAnimationSpeed();
     }
 }

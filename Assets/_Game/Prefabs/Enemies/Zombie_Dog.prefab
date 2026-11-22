@@ -84,7 +84,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6171717146935314913}
@@ -225,7 +225,7 @@ MonoBehaviour:
   - Run1
   useRootMotion: 0
   animSpeedRange: {x: 1.05, y: 1.2}
-  swayAmplitude: 0.45
+  swayAmplitude: 0.2
   swayFrequency: 0.9
   lurchAmount: 0.08
   aggroDistance: 7
@@ -255,46 +255,53 @@ MonoBehaviour:
   attackAnimations:
   - Attack1
   attackDamage: 3
-  attackInterval: 0.85
+  attackInterval: 0.98
   attackStopDistance: 0.6
   attackSounds:
+  - {fileID: 8300000, guid: f809b25c768b45ed952e3dc5a64d4203, type: 3}
+  - {fileID: 8300000, guid: 6139776d4bd3400cb525db50d25003e8, type: 3}
+  - {fileID: 8300000, guid: f7a170a86434469d910ee5c365962b81, type: 3}
   - {fileID: 8300000, guid: 437562d35cde90f49a66ba61d716682c, type: 3}
-  - {fileID: 8300000, guid: 5317c93961a616746bae9414addb71f4, type: 3}
   - {fileID: 8300000, guid: f251c210cb02a544087134db157d4e63, type: 3}
-  - {fileID: 8300000, guid: 36a4f404195e30c4f959b63167b729a1, type: 3}
-  - {fileID: 8300000, guid: 752cb65a5aac9394da9f47cb8cd1be02, type: 3}
-  - {fileID: 8300000, guid: 6c5e9cff7c3893740a4857b22419be87, type: 3}
-  - {fileID: 8300000, guid: 8d55fffd81c17de43b043567bd7597f5, type: 3}
-  - {fileID: 8300000, guid: f55bfe4f6d6257a48a4ceefcdd981e75, type: 3}
   standUpState: 
   standUpDuration: 1.4
   standUpMoveStates: []
+  loopAttackAnimation: 1
+  lungeState: Jump1
+  lungeTriggerDistance: 3.4
+  lungeSpeed: 8.5
+  lungeDuration: 0.5
+  lungeImpactDamage: 4
+  lungeSounds:
+  - {fileID: 8300000, guid: f809b25c768b45ed952e3dc5a64d4203, type: 3}
+  - {fileID: 8300000, guid: a0ceef9886fb4d9fbd57bb9185e5edba, type: 3}
+  prowlState: Idle1
+  prowlChance: 0.45
+  prowlZone: {x: 7, y: 12}
+  prowlDuration: {x: 0.6, y: 1}
+  zigzagAmplitude: 1.1
+  zigzagFrequency: 0.8
+  avoidLookAhead: 3.6
+  rootLurch: 0
   hitSounds:
   - {fileID: 8300000, guid: e80d58c533cdb30429e201928d12a406, type: 3}
   - {fileID: 8300000, guid: ec35c007d187da4469ef6866e55d9219, type: 3}
   groanSounds:
-  - {fileID: 8300000, guid: 1f41133f775a1cd42aa6f396d390d39a, type: 3}
-  - {fileID: 8300000, guid: 6836f04e04375aa4dabce664218d4779, type: 3}
-  - {fileID: 8300000, guid: 13110df7e8124c945b55e700c1b0c651, type: 3}
-  - {fileID: 8300000, guid: 6aaa7419644a3f94eb838123215c02ff, type: 3}
-  - {fileID: 8300000, guid: 23f25eee27ca6d34eabc2dbdf9e4dbaf, type: 3}
-  - {fileID: 8300000, guid: ada2621521749f64dbc753d89999b556, type: 3}
-  - {fileID: 8300000, guid: 950b2758b7d88754181ad911fdae2900, type: 3}
+  - {fileID: 8300000, guid: e78e5f69a0da4a4abeee32a35b03912c, type: 3}
+  - {fileID: 8300000, guid: dddead7d16b346fbb3f011e8d7756118, type: 3}
+  - {fileID: 8300000, guid: e4b07bf47192493aa789befcd409a7f8, type: 3}
+  - {fileID: 8300000, guid: 06c723df11014d4a9744d9dfbb6993dc, type: 3}
   deathSounds:
+  - {fileID: 8300000, guid: 4e7d5004cb7e4b6484ecde54dfb13958, type: 3}
+  - {fileID: 8300000, guid: c4c5a1b916bf4a309a04c9ca3b7a0e33, type: 3}
   - {fileID: 8300000, guid: e80d58c533cdb30429e201928d12a406, type: 3}
-  minGroanInterval: 2.5
-  maxGroanInterval: 5
+  minGroanInterval: 3
+  maxGroanInterval: 6
   emergeSounds:
+  - {fileID: 8300000, guid: a0ceef9886fb4d9fbd57bb9185e5edba, type: 3}
+  - {fileID: 8300000, guid: 9e3e6a7ee3db4677964810feb71d038e, type: 3}
   - {fileID: 8300000, guid: 769765ba81332984988affdd96d7c328, type: 3}
   - {fileID: 8300000, guid: a356efcd9a1361544a1f4d9f75083d45, type: 3}
-  - {fileID: 8300000, guid: 437562d35cde90f49a66ba61d716682c, type: 3}
-  - {fileID: 8300000, guid: 5317c93961a616746bae9414addb71f4, type: 3}
-  - {fileID: 8300000, guid: f251c210cb02a544087134db157d4e63, type: 3}
-  - {fileID: 8300000, guid: 36a4f404195e30c4f959b63167b729a1, type: 3}
-  - {fileID: 8300000, guid: 752cb65a5aac9394da9f47cb8cd1be02, type: 3}
-  - {fileID: 8300000, guid: 6c5e9cff7c3893740a4857b22419be87, type: 3}
-  - {fileID: 8300000, guid: 8d55fffd81c17de43b043567bd7597f5, type: 3}
-  - {fileID: 8300000, guid: f55bfe4f6d6257a48a4ceefcdd981e75, type: 3}
   emergeSoundChance: 0.9
   hitFlashColor: {r: 1, g: 0.72, b: 0.66, a: 1}
   hitFlashDuration: 0.08

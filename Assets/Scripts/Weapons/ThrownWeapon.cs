@@ -384,6 +384,7 @@ public class ThrownWeapon : MonoBehaviour
         // Flight wala rukh + halka jhukao (axe: blade andar, handle neeche latakta)
         visualRoot.rotation = flat * Quaternion.Euler(Data.stuckVisualEuler) * Quaternion.Euler(Data.flightVisualEuler);
         visualRoot.position = hit.point + dir * Data.stuckDepth;
+        visualRoot.localScale *= Data.stuckScale;   // phansa hua hathiyar bohat bara na lage
         foreach (var ps in visualRoot.GetComponentsInChildren<ParticleSystem>()) ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         Destroy(visualRoot.gameObject, 4.5f); // zombie zameen mein dhans jaye to saath gayab (warna bhi)
         visualRoot = null;

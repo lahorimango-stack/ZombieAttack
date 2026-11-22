@@ -55,6 +55,8 @@ public class WeaponDataSO : ScriptableObject
     public Vector3 stuckVisualEuler = Vector3.zero;
     [Tooltip("Jism ke andar kitna ghuse (meters)")]
     public float stuckDepth = 0.08f;
+    [Tooltip("Zombie mein phansne ke baad hathiyar ka size (1 = udte waqt jitna). Chhota = qudrati lagta hai")]
+    [Range(0.2f, 1.5f)] public float stuckScale = 0.6f;
     [Tooltip("Hit detection sphere ka radius")]
     public float hitRadius = 0.25f;
 

@@ -37,6 +37,7 @@ public class LevelEnvironment : MonoBehaviour
     private static readonly Dictionary<ParticleSystem, float> rainBase = new Dictionary<ParticleSystem, float>();
     private float nextFlash;
     private float flashUntil;
+    private float effIntensity;   // StreetLighting ka boost samet
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() { skyInstances.Clear(); rainBase.Clear(); }
@@ -62,10 +63,12 @@ public class LevelEnvironment : MonoBehaviour
         if (mainLight != null)
         {
             mainLight.color = lightColor;
-            mainLight.intensity = lightIntensity;
+            effIntensity = lightIntensity * (StreetLighting.Instance != null ? StreetLighting.Instance.MainLightBoost : 1f);
+            mainLight.intensity = effIntensity;
             mainLight.transform.rotation = Quaternion.Euler(lightEuler);
         }
 
+        StreetLighting.Instance?.OnEnvironmentApplied();   // door ke zombies nazar aayein
         SetRain(rainAmount);
         nextFlash = Time.time + Random.Range(3f, 6f);
 
@@ -110,8 +113,8 @@ public class LevelEnvironment : MonoBehaviour
         {
             float t = flashUntil - Time.time;
             bool on = t > 0.27f || (t < 0.18f && t > 0.08f); // do chamak
-            mainLight.intensity = on ? lightIntensity * 4.5f : lightIntensity;
+            mainLight.intensity = on ? effIntensity * 4.5f : effIntensity;
         }
-        else if (mainLight.intensity != lightIntensity) mainLight.intensity = lightIntensity;
+        else if (mainLight.intensity != effIntensity) mainLight.intensity = effIntensity;
     }
 }

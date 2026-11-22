@@ -37,7 +37,8 @@ MonoBehaviour:
   lifeTime: 2
   stickOnHit: 1
   stuckVisualEuler: {x: -5, y: 0, z: 0}
-  stuckDepth: -0.12
+  stuckDepth: -0.04
+  stuckScale: 0.55
   hitRadius: 0.28
   damage: 30
   pierceCount: 0

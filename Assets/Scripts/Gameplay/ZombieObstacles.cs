@@ -67,7 +67,13 @@ public static class ZombieObstacles
     }
 
     /// <summary> Position kisi rukawat ke andar ho to aahista bahar (radius = jism ki aadhi chaurai) </summary>
-    public static Vector3 Resolve(Vector3 p, float radius)
+    public static Vector3 Resolve(Vector3 p, float radius) => Resolve(p, radius, 99f);
+
+    /// <summary>
+    /// Position kisi rukawat ke andar ho to aahista bahar. laneHalf = zombie ki lane ki aadhi chaurai:
+    /// saamne se takraye to usi kone ki taraf khiskao jo lane ke ANDAR ho (warna kinare aur gaadi ke beech phansa rehta tha).
+    /// </summary>
+    public static Vector3 Resolve(Vector3 p, float radius, float laneHalf)
     {
         Vector2 q = new Vector2(p.x, p.z);
         for (int i = 0; i < boxes.Count; i++)
@@ -81,23 +87,71 @@ public static class ZombieObstacles
             if (px <= 0f || pz <= 0f) continue;                   // bahar hai
 
             // Sab se chhota raasta bahar
-            Vector2 n; float depth; float side;                   // side = deewar ke saath kidhar khiskna
-            if (px < pz) { n = b.ax * Mathf.Sign(u); depth = px; side = v; }
-            else         { n = b.az * Mathf.Sign(v); depth = pz; side = u; }
+            Vector2 n; float depth;
+            if (px < pz) { n = b.ax * Mathf.Sign(u); depth = px; }
+            else         { n = b.az * Mathf.Sign(v); depth = pz; }
             q += n * Mathf.Min(depth, MaxPushPerFrame);
 
-            // Agar dhakka zombie ko PEECHE (player se door, +z) bhej raha hai = saamne se takraya:
-            // deewar ke saath side mein khiskao (qareeb wala kona), warna aage chalna + peeche dhakka = phansa
+            // Dhakka zombie ko PEECHE (+z) bhej raha hai = saamne se takraya: side mein khiskao,
+            // us kone ki taraf jo lane ke andar ho aur qareeb ho
             if (n.y > 0.5f)
             {
-                Vector2 tan = new Vector2(n.y, -n.x);             // deewar ke saath wali disha
-                Vector2 axisAlong = (px < pz) ? b.az : b.ax;
-                float dir = Mathf.Sign(side == 0f ? -Vector2.Dot(b.c, axisAlong) : side);
-                if (Vector2.Dot(tan, axisAlong) < 0f) tan = -tan;
-                q += tan * dir * SlideSpeed * Time.deltaTime;
+                Edges(b, radius, out float left, out float right);
+                bool lOk = left >= -laneHalf, rOk = right <= laneHalf;
+                float dir;
+                if (lOk && !rOk) dir = -1f;
+                else if (rOk && !lOk) dir = 1f;
+                else dir = (q.x - left) < (right - q.x) ? -1f : 1f;
+                q.x += dir * SlideSpeed * Time.deltaTime;
             }
         }
         p.x = q.x; p.z = q.y;
         return p;
+    }
+
+    /// <summary> Box ki zameen par world-X mein left/right had (jism ki chaurai samet) </summary>
+    private static void Edges(Box b, float radius, out float left, out float right)
+    {
+        float ex = Mathf.Abs(b.ax.x) * b.hx + Mathf.Abs(b.az.x) * b.hz;
+        left = b.c.x - ex - radius;
+        right = b.c.x + ex + radius;
+    }
+
+    /// <summary>
+    /// Aage dekhna: zombie ke raste (-z) mein lookAhead meter ke andar koi rukawat ho to us ke kis kinare se
+    /// nikalna hai (targetX). side = pichhla faisla (-1 left, +1 right) - har frame idhar udhar nahi dolta.
+    /// Woh kinara chuna jata hai jo lane ke andar ho; dono hon to qareeb wala.
+    /// </summary>
+    public static bool TryAvoid(Vector3 p, float radius, float lookAhead, float laneHalf, ref int side, out float targetX)
+    {
+        targetX = p.x;
+        float bestDz = float.MaxValue, bestLeft = 0f, bestRight = 0f;
+        bool found = false;
+        for (int i = 0; i < boxes.Count; i++)
+        {
+            Box b = boxes[i];
+            if (b.col == null || !b.col.enabled) continue;
+            float ez = Mathf.Abs(b.ax.y) * b.hx + Mathf.Abs(b.az.y) * b.hz;
+            float front = b.c.y + ez + radius;                   // zombie ki taraf wala kinara
+            float back = b.c.y - ez - radius;
+            if (front < p.z - lookAhead || back > p.z) continue;  // raste mein nahi (aage door ya peeche)
+            Edges(b, radius, out float left, out float right);
+            if (p.x <= left || p.x >= right) continue;            // seedh mein nahi
+            float dz = Mathf.Max(0f, p.z - front);
+            if (dz < bestDz) { bestDz = dz; bestLeft = left; bestRight = right; found = true; }
+        }
+        if (!found) { side = 0; return false; }
+
+        bool leftOk = bestLeft >= -laneHalf, rightOk = bestRight <= laneHalf;
+        bool keep = (side < 0 && leftOk) || (side > 0 && rightOk);
+        if (!keep)
+        {
+            if (leftOk && rightOk) side = (p.x - bestLeft) < (bestRight - p.x) ? -1 : 1;
+            else if (leftOk) side = -1;
+            else if (rightOk) side = 1;
+            else side = (p.x - bestLeft) < (bestRight - p.x) ? -1 : 1;
+        }
+        targetX = side < 0 ? bestLeft - 0.1f : bestRight + 0.1f;
+        return true;
     }
 }

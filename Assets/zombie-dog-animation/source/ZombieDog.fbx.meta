@@ -65,7 +65,7 @@ ModelImporter:
       takeName: walk
       internalID: -3419257869308726280
       firstFrame: 0
-      lastFrame: 89
+      lastFrame: 33
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -94,7 +94,7 @@ ModelImporter:
       takeName: run
       internalID: 6200578666267062213
       firstFrame: 0
-      lastFrame: 89
+      lastFrame: 19
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -123,15 +123,15 @@ ModelImporter:
       takeName: attack 3
       internalID: -4841054119768082656
       firstFrame: 0
-      lastFrame: 89
+      lastFrame: 59
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
-      loopBlend: 0
+      loopTime: 1
+      loopBlend: 1
       loopBlendOrientation: 0
       loopBlendPositionY: 0
       loopBlendPositionXZ: 0
@@ -152,7 +152,7 @@ ModelImporter:
       takeName: hit 2
       internalID: 4975242491127639010
       firstFrame: 0
-      lastFrame: 89
+      lastFrame: 19
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -181,7 +181,7 @@ ModelImporter:
       takeName: Jump Edit
       internalID: -4919560564394851014
       firstFrame: 0
-      lastFrame: 89
+      lastFrame: 46
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
